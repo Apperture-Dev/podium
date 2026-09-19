@@ -21,7 +21,7 @@ final class ListApplicationsTest extends FunctionalTestCase
         $appManager = static::getContainer()->get(AppManagerApplicationService::class);
         $appManager->registerApplication('backend', $projectId, 'php', 'symfony');
 
-        $this->getJson('/api/applications?projectId='.$projectId, bearerToken: 'user-1');
+        $this->getJson('/api/teams/'.$teamId.'/projects/'.$projectId.'/applications', bearerToken: 'user-1');
 
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
         $applications = $this->jsonResponse();
@@ -38,21 +38,41 @@ final class ListApplicationsTest extends FunctionalTestCase
         $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend']);
         $projectId = $this->jsonResponse()['id'];
 
-        $this->getJson('/api/applications?projectId='.$projectId, bearerToken: 'user-2');
+        $this->getJson('/api/teams/'.$teamId.'/projects/'.$projectId.'/applications', bearerToken: 'user-2');
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
+    public function testReturns404WhenTheProjectDoesNotBelongToThatTeam(): void
+    {
+        $this->postJson('/api/teams', ['name' => 'Team A', 'creatorUserId' => 'user-1']);
+        $teamAId = $this->jsonResponse()['id'];
+
+        $this->postJson('/api/teams', ['name' => 'Team B', 'creatorUserId' => 'user-2']);
+        $teamBId = $this->jsonResponse()['id'];
+
+        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamAId, 'name' => 'Podium Backend']);
+        $projectId = $this->jsonResponse()['id'];
+
+        // user-2 es miembro real de teamB, pero el project es de teamA — la URL no debe existir.
+        $this->getJson('/api/teams/'.$teamBId.'/projects/'.$projectId.'/applications', bearerToken: 'user-2');
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
     public function testReturns404ForAnUnknownProjectId(): void
     {
-        $this->getJson('/api/applications?projectId=01997e3a-0000-7000-8000-000000000000', bearerToken: 'user-1');
+        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $teamId = $this->jsonResponse()['id'];
+
+        $this->getJson('/api/teams/'.$teamId.'/projects/01997e3a-0000-7000-8000-000000000000/applications', bearerToken: 'user-1');
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
 
     public function testRejectsRequestsWithoutABearerToken(): void
     {
-        $this->getJson('/api/applications?projectId=01997e3a-0000-7000-8000-000000000000');
+        $this->getJson('/api/teams/01997e3a-0000-7000-8000-000000000000/projects/01997e3a-0000-7000-8000-000000000000/applications');
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }

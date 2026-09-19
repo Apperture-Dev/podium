@@ -9,7 +9,6 @@ use App\Shared\Domain\Exception\AccessDeniedException;
 use OpenApi\Attributes as OA;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -21,12 +20,12 @@ final class ListProjectsController
     ) {
     }
 
-    #[Route('/api/projects', name: 'project_list', methods: ['GET'])]
+    #[Route('/api/teams/{teamId}/projects', name: 'project_list', methods: ['GET'])]
     #[OA\Get(
-        path: '/api/projects',
+        path: '/api/teams/{teamId}/projects',
         summary: 'Lista los Project de un Team — el usuario autenticado debe ser miembro de ese Team',
         tags: ['Project'],
-        parameters: [new OA\Parameter(name: 'teamId', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
+        parameters: [new OA\Parameter(name: 'teamId', in: 'path', required: true, schema: new OA\Schema(type: 'string', format: 'uuid'))],
     )]
     #[OA\Response(
         response: 200,
@@ -42,10 +41,8 @@ final class ListProjectsController
     #[OA\Response(response: 401, description: 'Bearer token ausente o inválido')]
     #[OA\Response(response: 403, description: 'El usuario no es miembro de ese Team')]
     #[OA\Response(response: 404, description: 'El teamId no corresponde a ningún Team registrado')]
-    public function __invoke(Request $request, #[CurrentUser] UserInterface $user): JsonResponse
+    public function __invoke(string $teamId, #[CurrentUser] UserInterface $user): JsonResponse
     {
-        $teamId = $request->query->getString('teamId');
-
         try {
             $projects = $this->applicationService->listProjectsForTeam($teamId, $user->getUserIdentifier());
         } catch (AccessDeniedException) {

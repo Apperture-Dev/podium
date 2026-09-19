@@ -9,6 +9,7 @@ use App\AppManager\Domain\Port\ApplicationRepository;
 use App\AppManager\Domain\Port\TemplateResolver;
 use App\AppManager\Domain\ValueObject\ApplicationDTO;
 use App\Project\Domain\Port\ProjectRepository;
+use App\Project\Domain\Project;
 use App\Project\Domain\ValueObject\ProjectId;
 use App\Shared\Domain\Exception\AccessDeniedException;
 use App\Team\Domain\Port\TeamRepository;
@@ -106,25 +107,54 @@ final readonly class ApplicationService
     }
 
     /**
-     * Lista las Application de un Project — antes valida que el userId
-     * autenticado sea miembro del Team dueño de ese Project (Application.teamId
-     * ya está materializado, pero la autorización se resuelve contra el
-     * Team real, no contra la copia).
+     * Lista las Application de un Project dentro de un Team — antes valida
+     * que el projectId pertenezca de verdad a ese teamId (si no, 404: esa
+     * URL no existe) y que el userId autenticado sea miembro del Team real
+     * (Application.teamId ya está materializado, pero la autorización se
+     * resuelve contra el Team real, no contra la copia).
      *
      * @return list<ApplicationDTO>
      */
-    public function listApplicationsForProject(string $projectId, string $requestingUserId): array
+    public function listApplicationsForProject(string $teamId, string $projectId, string $requestingUserId): array
     {
-        $project = $this->projects->get(ProjectId::fromString($projectId));
-        $team = $this->teams->get(TeamId::fromString($project->teamId()));
-
-        if (!$team->hasMember(UserId::fromString($requestingUserId))) {
-            throw new AccessDeniedException(\sprintf('User "%s" cannot access project "%s".', $requestingUserId, $projectId));
-        }
+        $project = $this->requireProjectInTeam($teamId, $projectId);
+        $this->requireMember($project->teamId(), $requestingUserId);
 
         $applications = $this->applications->findByProjectId($projectId);
 
         return array_map(static fn (Application $application): ApplicationDTO => $application->toDTO(), $applications);
+    }
+
+    /** Misma autorización que `listApplicationsForProject`, para una única Application por `serviceName`. */
+    public function getApplication(string $teamId, string $projectId, string $serviceName, string $requestingUserId): ApplicationDTO
+    {
+        $project = $this->requireProjectInTeam($teamId, $projectId);
+        $this->requireMember($project->teamId(), $requestingUserId);
+
+        $application = $this->applications->findByProjectIdAndServiceName($projectId, $serviceName)
+            ?? throw new RuntimeException(\sprintf('Application "%s" not found for project "%s".', $serviceName, $projectId));
+
+        return $application->toDTO();
+    }
+
+    private function requireProjectInTeam(string $teamId, string $projectId): Project
+    {
+        $project = $this->projects->get(ProjectId::fromString($projectId));
+
+        if ($project->teamId() !== $teamId) {
+            throw new RuntimeException(\sprintf('Project "%s" not found for team "%s".', $projectId, $teamId));
+        }
+
+        return $project;
+    }
+
+    private function requireMember(string $teamId, string $requestingUserId): void
+    {
+        $team = $this->teams->get(TeamId::fromString($teamId));
+
+        if (!$team->hasMember(UserId::fromString($requestingUserId))) {
+            throw new AccessDeniedException(\sprintf('User "%s" cannot access team "%s".', $requestingUserId, $teamId));
+        }
     }
 
     private function getByProjectIdAndServiceName(string $projectId, string $serviceName): Application

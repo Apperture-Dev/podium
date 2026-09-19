@@ -17,7 +17,7 @@ final class ListProjectsTest extends FunctionalTestCase
         $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend']);
         self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
 
-        $this->getJson('/api/projects?teamId='.$teamId, bearerToken: 'user-1');
+        $this->getJson('/api/teams/'.$teamId.'/projects', bearerToken: 'user-1');
 
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
         $projects = $this->jsonResponse();
@@ -31,21 +31,21 @@ final class ListProjectsTest extends FunctionalTestCase
         $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
         $teamId = $this->jsonResponse()['id'];
 
-        $this->getJson('/api/projects?teamId='.$teamId, bearerToken: 'user-2');
+        $this->getJson('/api/teams/'.$teamId.'/projects', bearerToken: 'user-2');
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
     }
 
     public function testReturns404ForAnUnknownTeamId(): void
     {
-        $this->getJson('/api/projects?teamId=01997e3a-0000-7000-8000-000000000000', bearerToken: 'user-1');
+        $this->getJson('/api/teams/01997e3a-0000-7000-8000-000000000000/projects', bearerToken: 'user-1');
 
         self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
     }
 
     public function testRejectsRequestsWithoutABearerToken(): void
     {
-        $this->getJson('/api/projects?teamId=01997e3a-0000-7000-8000-000000000000');
+        $this->getJson('/api/teams/01997e3a-0000-7000-8000-000000000000/projects');
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
