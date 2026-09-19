@@ -29,13 +29,13 @@
 | **Remediation** | Agnóstico al estado de la aplicación — es una *reacción* con reglas propias, fuera del modelo de estado de App Manager. Se dispara por: `BuildFailed`, salud agotada en Deploy, o un error en tiempo de ejecución (p. ej. 500) | ✅ Confirmed — independiente de App Manager |
 | **AppSource** | De dónde viene el código y si cambió. Dominio agnóstico al proveedor (GitHub/GitLab/etc.) — toda la diferencia vive detrás de un único puerto, un solo adaptador por ahora (repos públicos) | ✅ Confirmed |
 | **Project** | Aglutina las Applications (servicios) declaradas en el `podium.yaml` de un repo. Dueño del `hash` público — compone la URL de cada servicio. Descubre servicios nuevos y reparte los cambios de fuente por servicio | ✅ Confirmed — ver `project/discovery.md` |
+| **Team** | Dueño de uno o más `Project`. Mantiene nombre y lista de miembros (`UserId`, referencia opaca a Keycloak/JWT); garantiza mínimo 1 miembro siempre (el creador, al registrarse) | ✅ Confirmed — ver `team/discovery.md` |
 
 ## Still-Proposed (sin tocar en esta sesión)
 
 | Name | Core Responsibility (hipótesis original) | Status |
 |---|---|---|
 | **Provisioning** | Aislamiento del proyecto (namespace, quota, netpol, TTL). **Nuevo, sin abrir todavía**: capacidad de base de datos (CNPG) — Provisioning declara el derecho/entitlement, Deploy materializa el manifiesto (CNPG ya instalado en el clúster) | 🆕 Proposed |
-| **(sin nombre — Team)** | Dueño de una o más Applications; aggregate `Team`. Descubierto al modelar App Manager, límites y nombre aún por definir | 🆕 Proposed — ver `app-manager/discovery.md` |
 
 ## Cross-Context Events
 
@@ -52,6 +52,7 @@
 | `DeployFailed` | Deploy | App Manager (`markDeployFailed`), Remediation | ✅ Confirmed |
 | `DeploySucceeded` | Deploy | App Manager (`markDeploySucceeded`) | ✅ Confirmed |
 | *(error en tiempo de ejecución, ej. 500)* | Logs del pod → Alloy → Loki → agente clasificador de gravedad | Remediation, App Manager | ✅ Confirmed — origen resuelto. ⚠️ Nota: si el "agente clasificador de gravedad" tiene reglas propias de qué cuenta como grave, podría ser su propio BC (Observability); si es un filtro técnico sin reglas de negocio, es solo un adaptador hacia Remediation. Sin resolver, no bloqueante |
+| `TeamDeleted` | Team | Project (debería disparar borrado en cascada de sus Projects) | 🕓 Deferred — nombre y disparador confirmados, implementación fuera del MVP de hoy — ver `team/discovery.md` |
 
 ## Captured Invariants
 
@@ -95,4 +96,10 @@
 - Nuevo BC candidato: **Project**. Un `podium.yaml` real reveló que un repo puede declarar varios servicios desplegables (monorepo) — rompe la asunción implícita "un AppSource = una Application" que llevábamos usando. Razón para soportarlo ya: alta probabilidad de que equipos usando asistentes de código generen justo ese patrón (frontend+backend) por defecto. Pregunta bloqueante abierta: cómo se reorganiza la cadena AppSource→Application→Team con Project de por medio, antes de tocar esos tres documentos otra vez. También reveladas: capacidad de base de datos (CNPG) para Provisioning, precedencia URL-gana-por-peso, sin sintaxis de default en secrets, referencia cruzada `${app.url}` entre servicios.
 - **`Project` confirmado.** Resuelto: `hash` es de Project, nunca de Application (`Application.appHash` se renombra a `serviceName`, único dentro de su Project). Deploy sigue siendo por Application/servicio, no por Project — decisión explícita para el hackathon. Corregida la cadena de eventos: `SourceChanged` (AppSource) lo consume `Project`, no App Manager directamente; Project reparte `ApplicationSourceChanged` por servicio conocido, y `ServiceDiscovered` para servicios nuevos. Inferencia pendiente de confirmar: si `Team` pasa a ser dueño de `Project` en vez de cada `Application`.
 - Resuelto: `Team` es dueño de `Project`. `Application.teamId` se mantiene como copia materializada de solo lectura, fijada al registrar — nunca un segundo dueño de la verdad. Capturada la distinción general entre duplicación (mala, dos caminos de escritura) y materialización de solo lectura (correcta, un solo dueño). Los `model.md` de App Manager y Build quedan pendientes de regenerar tras este renombrado.
+
+### 2026-09-19
+- **`Team` confirmado.** Discovery propio cerrado (`team/discovery.md`, `team/model.md`): aggregate root con `TeamId`, `TeamName` (libre, máx. 150 caracteres) y lista de miembros (`UserId`, VO — referencia opaca a Keycloak/JWT, sin modelar un aggregate `User`). Invariante: mínimo 1 miembro siempre, garantizado porque quien registra el Team pasa a ser automáticamente su primer miembro.
+- Descartado un aggregate `Membership` propio: sin identidad ni reglas independientes, es solo la relación many-to-many `Team` ↔ `UserId`. Rol de membresía (editor/viewer) y `slug` legible/único quedan identificados pero diferidos fuera del MVP de hoy — `TeamId` sirve como identificador público mientras tanto.
+- Nuevo evento `TeamDeleted` identificado (debería disparar borrado en cascada de los `Project` del equipo) — nombrado y confirmado, implementación diferida.
+- Pendiente, no bloqueante: `project/model.md` sigue modelando `Project.teamId` como `string` crudo, no como `TeamId` — revisar en una pasada futura sobre el modelo de Project.
 
