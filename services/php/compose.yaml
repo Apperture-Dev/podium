@@ -25,6 +25,35 @@ services:
     volumes:
       - redis_data:/data
 
+  # Identity provider — emite los JWT cuyo claim `sub` es el `userId` opaco
+  # que ya usa el dominio (ver context-map.md: userId nunca se modela como
+  # aggregate propio). Modo dev (start-dev), realm "podium" importado desde
+  # docker/keycloak/podium-realm.json al arrancar.
+  #
+  # Admin console: http://localhost:${PODIUM_KEYCLOAK_PORT:-8091}/admin
+  #   (usuario: ${KEYCLOAK_ADMIN:-admin} / clave: ${KEYCLOAK_ADMIN_PASSWORD:-admin})
+  #
+  # Token de prueba (client "podium-api", secret "podium-dev-secret",
+  # usuario "testuser"/"testuser" ya cargado en el realm importado):
+  #   curl -X POST \
+  #     http://localhost:${PODIUM_KEYCLOAK_PORT:-8091}/realms/podium/protocol/openid-connect/token \
+  #     -H "Content-Type: application/x-www-form-urlencoded" \
+  #     -d "grant_type=password&client_id=podium-api&client_secret=podium-dev-secret&username=testuser&password=testuser"
+  # El campo "sub" del JWT devuelto (decodificarlo en jwt.io o con `jq`) es el
+  # userId opaco que espera el dominio (p. ej. App\Team\Domain\ValueObject\UserId).
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev --import-realm
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./docker/keycloak/podium-realm.json:/opt/keycloak/data/import/podium-realm.json:ro
+      - keycloak_data:/opt/keycloak/data
+    ports:
+      - "${PODIUM_KEYCLOAK_PORT:-8091}:8080"
+
 ###> doctrine/doctrine-bundle ###
   database:
     image: postgres:${POSTGRES_VERSION:-16}-alpine
@@ -46,6 +75,7 @@ services:
 
 volumes:
   redis_data:
+  keycloak_data:
 
 ###> doctrine/doctrine-bundle ###
   database_data:
