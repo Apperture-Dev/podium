@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: php-migrations
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+        - name: gitlab-token-auth
+      restartPolicy: Never
+      containers:
+        - name: migrations
+          image: REGISTRY_PLACEHOLDER/php:latest
+          imagePullPolicy: IfNotPresent
+          command: ["php", "bin/console", "doctrine:migrations:migrate", "--no-interaction"]
+          env:
+            - name: APP_ENV
+              value: prod
+            - name: APP_DEBUG
+              value: "0"
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: uri
+            - name: DATABASE_URL
+              value: "$(POSTGRES_URL)?serverVersion=16&charset=utf8"
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: podium-app
+                  key: APP_SECRET
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+  backoffLimit: 3

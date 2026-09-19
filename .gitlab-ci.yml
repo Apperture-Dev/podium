@@ -1,0 +1,73 @@
+# Build-only por ahora: sin stage de deploy todavía. El tag de imagen en
+# deploy/overlays/prod/kustomization.yaml se actualiza a mano (con "[skip ci]"
+# en el commit) hasta que se decida automatizar ese paso en una iteración futura.
+stages:
+  - build
+
+# Configuración de Buildah reutilizada tal cual del patrón ya probado en
+# craft-market/.gitlab-ci.yml (imagen quay.io/buildah/stable, storage.conf con
+# fuse-overlayfs, aislamiento chroot) — no se reinventa.
+.buildah-base:
+  image: quay.io/buildah/stable
+  variables:
+    FF_USE_ADVANCED_POD_SPEC_CONFIGURATION: "true"
+    BUILDAH_FORMAT: docker
+    BUILDAH_ISOLATION: chroot
+    BUILDAH_LAYERS: "true"
+  before_script:
+    - mkdir -p /tmp/containers/storage /tmp/containers/run
+    - |
+      cat > /etc/containers/storage.conf << 'EOF'
+      [storage]
+        driver = "overlay"
+        graphroot = "/tmp/containers/storage"
+        runroot = "/tmp/containers/run"
+
+        [storage.options.overlay]
+          mount_program = "/usr/bin/fuse-overlayfs"
+          mountopt = "nodev,fsync=0"
+          ignore_chown_errors = "true"
+          skip_mount_home = "true"
+      EOF
+    - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+build-php:
+  extends: .buildah-base
+  stage: build
+  script:
+    - |
+      buildah bud --isolation=chroot --layers \
+        --cache-from "$CI_REGISTRY_IMAGE/php" \
+        --target prod \
+        -t "$CI_REGISTRY_IMAGE/php:$CI_COMMIT_SHORT_SHA" \
+        -t "$CI_REGISTRY_IMAGE/php:latest" \
+        -f services/php/docker/franken-php/Dockerfile services/php
+    - buildah push "$CI_REGISTRY_IMAGE/php:$CI_COMMIT_SHORT_SHA"
+    - buildah push "$CI_REGISTRY_IMAGE/php:latest"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - services/php/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/php/**/*
+
+build-web:
+  extends: .buildah-base
+  stage: build
+  script:
+    - |
+      buildah bud --isolation=chroot --layers \
+        --cache-from "$CI_REGISTRY_IMAGE/web" \
+        -t "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA" \
+        -t "$CI_REGISTRY_IMAGE/web:latest" \
+        -f services/web/docker/Dockerfile services/web
+    - buildah push "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
+    - buildah push "$CI_REGISTRY_IMAGE/web:latest"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - services/web/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/web/**/*

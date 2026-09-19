@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: hostium
+resources:
+  - ../../base
+# Tags iniciales: actualizar a mano tras el primer build de CI (kustomize edit
+# set image, commit con "[skip ci]" — ver deploy/README.md). newName asume que
+# el proyecto de GitLab es apperturedev/podium; ajustar si difiere.
+images:
+  - name: REGISTRY_PLACEHOLDER/php
+    newName: registry.gitlab.com/apperturedev/podium/php
+    newTag: latest
+  - name: REGISTRY_PLACEHOLDER/web
+    newName: registry.gitlab.com/apperturedev/podium/web
+    newTag: latest

@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hostium-web
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: hostium-web
+    spec:
+      imagePullSecrets:
+        - name: gitlab-token-auth
+      containers:
+        - name: app
+          image: REGISTRY_PLACEHOLDER/web:latest
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            # DNS interno del namespace — tráfico servidor-a-servidor, sin pasar
+            # por el Ingress/TLS público (el navegador nunca llama a estas URLs).
+            - name: SYMFONY_API_BASE_URL
+              value: "http://php:80"
+            - name: KEYCLOAK_URL
+              value: "http://keycloak:8080"
+            - name: KEYCLOAK_REALM
+              value: "podium"
+            - name: KEYCLOAK_CLIENT_ID
+              value: "podium-web"
+            # Usado solo por /register (Keycloak Admin REST API, realm master)
+            # — mismo secret que consume el propio Keycloak como admin inicial.
+            - name: KEYCLOAK_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin
+                  key: username
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-admin
+                  key: password
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "384Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2

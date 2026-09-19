@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: php
+  labels:
+    app: hostium-php
+spec:
+  type: ClusterIP
+  selector:
+    app: hostium-php
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: metrics
+      port: 9090
+      targetPort: 9090

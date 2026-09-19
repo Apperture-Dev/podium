@@ -1,0 +1,43 @@
+# Copia de services/php/docker/keycloak/podium-realm.json. Si ese fichero
+# cambia, hay que sincronizar este ConfigMap a mano (no hay generador
+# automático todavía).
+#
+# Nota conocida: el client "podium-api" trae el secret de desarrollo
+# ("podium-dev-secret") tal cual — rotarlo desde la consola de admin de
+# Keycloak tras el primer despliegue queda fuera de esta primera iteración.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+data:
+  podium-realm.json: |
+    {
+      "realm": "podium",
+      "enabled": true,
+      "sslRequired": "external",
+      "registrationAllowed": false,
+      "clients": [
+        {
+          "clientId": "podium-api",
+          "enabled": true,
+          "publicClient": false,
+          "protocol": "openid-connect",
+          "secret": "podium-dev-secret",
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": true,
+          "serviceAccountsEnabled": true,
+          "redirectUris": ["*"]
+        },
+        {
+          "clientId": "podium-web",
+          "enabled": true,
+          "publicClient": true,
+          "protocol": "openid-connect",
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": true,
+          "serviceAccountsEnabled": false,
+          "redirectUris": ["*"]
+        }
+      ],
+      "users": []
+    }

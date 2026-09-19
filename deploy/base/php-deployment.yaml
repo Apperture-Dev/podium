@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hostium-php
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: hostium-php
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      imagePullSecrets:
+        - name: gitlab-token-auth
+      containers:
+        - name: app
+          image: REGISTRY_PLACEHOLDER/php:latest
+          ports:
+            - name: http
+              containerPort: 80
+            - name: metrics
+              containerPort: 9090
+          env:
+            - name: APP_ENV
+              value: prod
+            - name: APP_DEBUG
+              value: "0"
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: uri
+            - name: DATABASE_URL
+              value: "$(POSTGRES_URL)?serverVersion=16&charset=utf8"
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: podium-app
+                  key: APP_SECRET
+            - name: MESSENGER_TRANSPORT_DSN
+              value: "redis://redis-master:6379"
+            - name: KEYCLOAK_JWKS_URL
+              value: "http://keycloak:8080/realms/podium/protocol/openid-connect/certs"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
