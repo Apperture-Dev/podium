@@ -12,8 +12,10 @@ use App\Project\Domain\ValueObject\ProjectId;
 use App\Project\Domain\ValueObject\ProjectName;
 use App\Shared\Domain\Exception\AccessDeniedException;
 use App\Team\Domain\Port\TeamRepository;
+use App\Team\Domain\Team;
 use App\Team\Domain\ValueObject\TeamId;
 use App\Team\Domain\ValueObject\UserId;
+use RuntimeException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final readonly class ApplicationService
@@ -56,15 +58,36 @@ final readonly class ApplicationService
      */
     public function listProjectsForTeam(string $teamId, string $requestingUserId): array
     {
+        $this->requireMember($teamId, $requestingUserId);
+
+        $projects = $this->projects->findByTeamId($teamId);
+
+        return array_map(static fn (Project $project): ProjectDTO => $project->toDTO(), $projects);
+    }
+
+    /** Misma autorización que `listProjectsForTeam`, más la consistencia de que el projectId pertenezca de verdad a ese teamId. */
+    public function getProject(string $teamId, string $projectId, string $requestingUserId): ProjectDTO
+    {
+        $this->requireMember($teamId, $requestingUserId);
+
+        $project = $this->projects->get(ProjectId::fromString($projectId));
+
+        if ($project->teamId() !== $teamId) {
+            throw new RuntimeException(\sprintf('Project "%s" not found for team "%s".', $projectId, $teamId));
+        }
+
+        return $project->toDTO();
+    }
+
+    private function requireMember(string $teamId, string $requestingUserId): Team
+    {
         $team = $this->teams->get(TeamId::fromString($teamId));
 
         if (!$team->hasMember(UserId::fromString($requestingUserId))) {
             throw new AccessDeniedException(\sprintf('User "%s" cannot access team "%s".', $requestingUserId, $teamId));
         }
 
-        $projects = $this->projects->findByTeamId($teamId);
-
-        return array_map(static fn (Project $project): ProjectDTO => $project->toDTO(), $projects);
+        return $team;
     }
 
     public function processSourceChanged(
