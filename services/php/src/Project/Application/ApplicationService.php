@@ -6,7 +6,10 @@ namespace App\Project\Application;
 
 use App\Project\Domain\Port\PodiumManifestReader;
 use App\Project\Domain\Port\ProjectRepository;
+use App\Project\Domain\Project;
 use App\Project\Domain\ValueObject\ProjectId;
+use App\Team\Domain\Port\TeamRepository;
+use App\Team\Domain\ValueObject\TeamId;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final readonly class ApplicationService
@@ -15,7 +18,24 @@ final readonly class ApplicationService
         private ProjectRepository $projects,
         private PodiumManifestReader $manifestReader,
         private MessageBusInterface $eventBus,
+        private TeamRepository $teams,
     ) {
+    }
+
+    /**
+     * El equipo da a Podium una repositoryUrl por primera vez. Valida que el
+     * teamId exista — referencia entre BCs solo por id, la existencia la
+     * comprueba el orquestador, nunca el dominio.
+     */
+    public function registerProject(string $repositoryUrl, string $teamId): string
+    {
+        $this->teams->get(TeamId::fromString($teamId));
+
+        $project = Project::register($repositoryUrl, $teamId);
+
+        $this->projects->save($project);
+
+        return $project->id()->toString();
     }
 
     public function processSourceChanged(
