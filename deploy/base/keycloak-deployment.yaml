@@ -68,29 +68,34 @@ spec:
             - name: realm-import
               mountPath: /opt/keycloak/data/import
               readOnly: true
+          # 1Gi de límite se quedaba corto: el "build"/augmentation de Quarkus
+          # en el primer arranque (config nueva + import de realm) llegó a
+          # OOMKilled con ese límite en el primer despliegue real.
           resources:
             requests:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "250m"
             limits:
-              memory: "1Gi"
+              memory: "2Gi"
               cpu: "1000m"
+          # Umbrales holgados: el primer arranque (build de Quarkus + import
+          # de realm) tarda bastante más que un arranque normal en caliente.
           readinessProbe:
             httpGet:
               path: /health/ready
               port: 9000
-            initialDelaySeconds: 20
+            initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 3
-            failureThreshold: 6
+            failureThreshold: 10
           livenessProbe:
             httpGet:
               path: /health/live
               port: 9000
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 3
-            failureThreshold: 6
+            failureThreshold: 10
       volumes:
         - name: realm-import
           configMap:

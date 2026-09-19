@@ -60,8 +60,12 @@ COPY --from=composer-deps /app/vendor /app/vendor
 
 COPY . /app
 
-# Copiar configuración de Caddy
-COPY docker/franken-php/Caddyfile /etc/caddy/Caddyfile
+# Copiar configuración de Caddy — la ruta que realmente lee FrankenPHP en
+# tiempo de ejecución es /etc/frankenphp/Caddyfile (así invoca el entrypoint
+# de la imagen base: "frankenphp run --config /etc/frankenphp/Caddyfile"),
+# no /etc/caddy/Caddyfile — copiar ahí dejaba corriendo silenciosamente el
+# Caddyfile por defecto de la imagen base en vez del nuestro.
+COPY docker/franken-php/Caddyfile /etc/frankenphp/Caddyfile
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV SERVER_NAME=:80
