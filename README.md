@@ -122,6 +122,28 @@ docker compose exec frankenphp vendor/bin/phpunit
 
 `tests/Unit` (dominio puro), `tests/Integration` (repositorios contra Postgres real), `tests/Functional` (HTTP end-to-end, incluida la autenticación).
 
+## CI y despliegue
+
+Primera versión desplegable de Hostium (nombre de producto de Podium), trackeada en este mismo
+repo — sin repo de GitOps separado, para que se pueda ver de punta a punta cómo se despliega.
+
+- **`.gitlab-ci.yml`** — build de las imágenes de `services/php` y `services/web` (Buildah, sin
+  Docker-in-Docker), push al Container Registry del proyecto en GitLab. De momento solo build:
+  todavía no hay stage de deploy automático.
+- **`deploy/`** — Kustomize (`base/` + `overlays/prod/`) y la `Application` de ArgoCD
+  (`deploy/argocd/hostium.yaml`) que despliega `php`, `web` y `keycloak` (modo producción, con
+  persistencia propia) en el namespace `hostium`:
+
+  | Servicio | Dominio |
+  |---|---|
+  | `web` (dashboard) | `app.hostium.apperture.dev` |
+  | `php` (API) | `api.hostium.apperture.dev` |
+  | `keycloak` (auth) | `auth.hostium.apperture.dev` |
+
+  Ver **`deploy/README.md`** para los secretos que hay que crear a mano antes del primer sync
+  (no se usa Sealed Secrets en esta primera versión) y las verificaciones previas contra el
+  clúster real.
+
 ## Fuera del dominio, pero documentado
 
 Dos carpetas hermanas, generadas en la misma sesión, cubren la parte de infraestructura que no es modelo de dominio:
