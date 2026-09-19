@@ -80,20 +80,26 @@ kubectl -n hostium get pods -w
 
 A partir de aquí, ArgoCD sincroniza automáticamente cada push a `main` sobre `deploy/overlays/prod`.
 
-## 4. Actualizar el tag de imagen tras un build de CI
+## 4. Bump del tag de imagen (automático)
 
-Todavía no hay stage de deploy automático en `.gitlab-ci.yml` (solo build). Tras un push que dispare
-`build-php`/`build-web`, actualizar el tag a mano:
+`.gitlab-ci.yml` tiene un stage `deploy` (`deploy-php`/`deploy-web`) que, tras cada build en `main`,
+clona el propio repo, hace `kustomize edit set image` con el tag+digest recién publicado sobre
+`deploy/overlays/prod/kustomization.yaml`, y empuja el commit con `[skip ci]` (para no disparar una
+pipeline nueva) — mismo patrón que usa `craft-market` para su repo de gitops, adaptado a que aquí
+todo vive en un único repo. ArgoCD recoge ese commit y sincroniza solo.
 
-```bash
-cd deploy/overlays/prod
-kustomize edit set image registry.gitlab.com/apperturedev/podium/php=registry.gitlab.com/apperturedev/podium/php:<sha>
-git add kustomization.yaml
-git commit -m "deploy: hostium php@<sha> [skip ci]"
-git push
-```
+**Requiere configurar antes, a mano, en GitLab → Settings → CI/CD → Variables** (marcadas
+`Masked` + `Protected`):
 
-El `[skip ci]` evita que este commit dispare una pipeline nueva sobre el mismo repo.
+- `USERNAME` — el usuario asociado al token de abajo.
+- `DEPLOY_TOKEN` — un Project Access Token (o Personal Access Token) con scope `write_repository`.
+
+Y en **Settings → Repository → Protected branches**, confirmar que ese usuario/token tiene permiso
+de push sobre `main` (si `main` está protegida, "Allowed to push" debe incluir su rol).
+
+Este job solo empuja al remoto de GitLab — el espejo de GitHub (`origin`) no se entera solo, hay
+que traer el commit a mano (`git pull origin-gitlab main` + `git push origin main`) antes de seguir
+trabajando en local con la rama al día.
 
 ## Cosas pendientes de esta primera iteración
 
@@ -102,5 +108,5 @@ El `[skip ci]` evita que este commit dispare una pipeline nueva sobre el mismo r
 - No hay `nodeSelector`/afinidad de nodo declarada (a diferencia de `craft-market-gitops`,
   que usa `type: worker`) — no se pudo verificar contra el clúster real si aplica aquí; añadirla
   si hace falta.
-- Bump de tag de imagen manual — automatizarlo (como hace `craft-market`, con un job de CI que
-  hace commit al propio repo) es una iteración futura, fuera de alcance ahora.
+- El espejo de GitHub no se actualiza solo con el commit del job `deploy-*` (ver arriba) — si se
+  quiere automatizar también eso, haría falta que el job empuje a ambos remotos.

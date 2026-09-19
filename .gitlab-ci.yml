@@ -1,8 +1,6 @@
-# Build-only por ahora: sin stage de deploy todavía. El tag de imagen en
-# deploy/overlays/prod/kustomization.yaml se actualiza a mano (con "[skip ci]"
-# en el commit) hasta que se decida automatizar ese paso en una iteración futura.
 stages:
   - build
+  - deploy
 
 # Configuración de Buildah reutilizada tal cual del patrón ya probado en
 # craft-market/.gitlab-ci.yml (imagen quay.io/buildah/stable, storage.conf con
@@ -31,6 +29,30 @@ stages:
       EOF
     - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
+# Job de deploy compartido: clona el propio repo con un token con permiso de
+# escritura (no el CI_JOB_TOKEN del checkout, que es de solo lectura), bumpea
+# el tag+digest de la imagen en deploy/overlays/prod y empuja el commit con
+# "[skip ci]" para no disparar una pipeline nueva sobre el mismo push.
+#
+# Requiere las variables de CI/CD (Settings > CI/CD > Variables, marcadas
+# masked+protected) "USERNAME" y "DEPLOY_TOKEN" — un Project Access Token con
+# scope write_repository, con permiso para empujar a "main" (revisar Settings
+# > Repository > Protected branches si main está protegida).
+#
+# Nota: esto solo empuja al remoto de GitLab (origin-gitlab en local) — el
+# espejo de GitHub no se actualiza automáticamente, hay que traer el commit a
+# mano (git pull origin-gitlab main) antes de seguir trabajando en local.
+.deploy-base:
+  image: alpine/git:latest
+  stage: deploy
+  before_script:
+    - apk add --no-cache curl bash
+    - curl -sL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.1/kustomize_v5.4.1_linux_amd64.tar.gz | tar xz -C /usr/local/bin/
+    - git config --global user.email "ci-deploy@hostium"
+    - git config --global user.name "GitLab CI Deploy Bot"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
 build-php:
   extends: .buildah-base
   stage: build
@@ -42,8 +64,12 @@ build-php:
         -t "$CI_REGISTRY_IMAGE/php:$CI_COMMIT_SHORT_SHA" \
         -t "$CI_REGISTRY_IMAGE/php:latest" \
         -f services/php/docker/franken-php/Dockerfile services/php
-    - buildah push "$CI_REGISTRY_IMAGE/php:$CI_COMMIT_SHORT_SHA"
     - buildah push "$CI_REGISTRY_IMAGE/php:latest"
+    - buildah push --digestfile /tmp/image-digest.txt "$CI_REGISTRY_IMAGE/php:$CI_COMMIT_SHORT_SHA"
+    - echo "IMAGE_DIGEST=$(cat /tmp/image-digest.txt)" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
@@ -62,12 +88,68 @@ build-web:
         -t "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA" \
         -t "$CI_REGISTRY_IMAGE/web:latest" \
         -f services/web/docker/Dockerfile services/web
-    - buildah push "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
     - buildah push "$CI_REGISTRY_IMAGE/web:latest"
+    - buildah push --digestfile /tmp/image-digest.txt "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
+    - echo "IMAGE_DIGEST=$(cat /tmp/image-digest.txt)" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
         - services/web/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/web/**/*
+
+deploy-php:
+  extends: .deploy-base
+  needs:
+    - job: build-php
+      artifacts: true
+  script:
+    - git clone "https://${USERNAME}:${DEPLOY_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git" deploy-repo
+    - cd deploy-repo/deploy/overlays/prod
+    - |
+      if [ -n "$IMAGE_DIGEST" ]; then
+        kustomize edit set image "$CI_REGISTRY_IMAGE/php=$CI_REGISTRY_IMAGE/php:$CI_COMMIT_SHORT_SHA@$IMAGE_DIGEST"
+      else
+        kustomize edit set image "$CI_REGISTRY_IMAGE/php:$CI_COMMIT_SHORT_SHA"
+      fi
+    - git add kustomization.yaml
+    - git diff --cached --quiet && echo "Sin cambios, nada que commitear" && exit 0
+    - |
+      git commit -m "deploy: hostium php@$CI_COMMIT_SHORT_SHA [skip ci]
+
+      Pipeline: $CI_PIPELINE_ID  Commit: $CI_COMMIT_SHA"
+    - for i in 1 2 3; do git push origin HEAD:main && break || git pull --rebase origin main; done
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/php/**/*
+
+deploy-web:
+  extends: .deploy-base
+  needs:
+    - job: build-web
+      artifacts: true
+  script:
+    - git clone "https://${USERNAME}:${DEPLOY_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git" deploy-repo
+    - cd deploy-repo/deploy/overlays/prod
+    - |
+      if [ -n "$IMAGE_DIGEST" ]; then
+        kustomize edit set image "$CI_REGISTRY_IMAGE/web=$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA@$IMAGE_DIGEST"
+      else
+        kustomize edit set image "$CI_REGISTRY_IMAGE/web:$CI_COMMIT_SHORT_SHA"
+      fi
+    - git add kustomization.yaml
+    - git diff --cached --quiet && echo "Sin cambios, nada que commitear" && exit 0
+    - |
+      git commit -m "deploy: hostium web@$CI_COMMIT_SHORT_SHA [skip ci]
+
+      Pipeline: $CI_PIPELINE_ID  Commit: $CI_COMMIT_SHA"
+    - for i in 1 2 3; do git push origin HEAD:main && break || git pull --rebase origin main; done
+  rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - services/web/**/*
