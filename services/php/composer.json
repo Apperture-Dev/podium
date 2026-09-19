@@ -12,6 +12,7 @@
         "doctrine/orm": "^3.7",
         "firebase/php-jwt": "^7.1",
         "nelmio/api-doc-bundle": "^5.12",
+        "nelmio/cors-bundle": "^2.6",
         "symfony/console": "8.1.*",
         "symfony/dotenv": "8.1.*",
         "symfony/flex": "^2",
