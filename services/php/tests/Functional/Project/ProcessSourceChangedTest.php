@@ -11,6 +11,7 @@ use App\Project\Domain\Event\ServiceDiscovered;
 use App\Project\Domain\Port\ProjectRepository;
 use App\Project\Domain\Project;
 use App\Project\Domain\ValueObject\DeclaredService;
+use App\Project\Domain\ValueObject\ProjectName;
 use App\Project\Infrastructure\Manifest\InMemoryPodiumManifestReader;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
@@ -34,7 +35,7 @@ final class ProcessSourceChangedTest extends KernelTestCase
 
     public function testKnownServicePublishesApplicationSourceChanged(): void
     {
-        $project = Project::register('https://github.com/team/repo', 'team-1');
+        $project = Project::register('https://github.com/team/repo', 'team-1', ProjectName::fromString('Test Project'));
         $project->processSourceChanged('rev-0', 'https://github.com/team/repo', 'github', [
             new DeclaredService('backend', 'php', 'symfony'),
         ]);
@@ -61,7 +62,7 @@ final class ProcessSourceChangedTest extends KernelTestCase
 
     public function testNewServicePublishesServiceDiscoveredAndRegistersIt(): void
     {
-        $project = Project::register('https://github.com/team/repo', 'team-1');
+        $project = Project::register('https://github.com/team/repo', 'team-1', ProjectName::fromString('Test Project'));
         $this->projects->save($project);
 
         $this->manifestReader->willReturn([

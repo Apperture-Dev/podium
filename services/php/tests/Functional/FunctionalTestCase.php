@@ -36,6 +36,20 @@ abstract class FunctionalTestCase extends WebTestCase
         );
     }
 
+    /**
+     * `$bearerToken` va directo al `InMemoryAccessTokenHandler` de test (ver
+     * security.yaml) — sin verificar firma, el propio valor es el userId.
+     */
+    protected function getJson(string $uri, ?string $bearerToken = null): void
+    {
+        $server = [];
+        if (null !== $bearerToken) {
+            $server['HTTP_AUTHORIZATION'] = 'Bearer '.$bearerToken;
+        }
+
+        $this->client->request('GET', $uri, server: $server);
+    }
+
     protected function jsonResponse(): array
     {
         return json_decode($this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);

@@ -44,4 +44,23 @@ final class DoctrineTeamRepositoryTest extends IntegrationTestCase
 
         $this->repository->get(TeamId::generate());
     }
+
+    public function testFindByUserIdReturnsOnlyTeamsWhereTheUserIsAMember(): void
+    {
+        $team = Team::register(TeamName::fromString('Podium Team'), UserId::fromString('user-1'));
+        $otherTeam = Team::register(TeamName::fromString('Other Team'), UserId::fromString('user-2'));
+        $this->repository->save($team);
+        $this->repository->save($otherTeam);
+        $this->clearEntityManager();
+
+        $found = $this->repository->findByUserId(UserId::fromString('user-1'));
+
+        self::assertCount(1, $found);
+        self::assertTrue($found[0]->id()->equals($team->id()));
+    }
+
+    public function testFindByUserIdReturnsEmptyWhenTheUserHasNoTeams(): void
+    {
+        self::assertSame([], $this->repository->findByUserId(UserId::fromString('user-without-teams')));
+    }
 }

@@ -5,6 +5,7 @@ doctrine:
         types:
             project_id: App\Project\Infrastructure\Persistence\Doctrine\Type\ProjectIdType
             hash: App\Project\Infrastructure\Persistence\Doctrine\Type\HashType
+            project_name: App\Project\Infrastructure\Persistence\Doctrine\Type\ProjectNameType
             team_id: App\Team\Infrastructure\Persistence\Doctrine\Type\TeamIdType
             team_name: App\Team\Infrastructure\Persistence\Doctrine\Type\TeamNameType
             user_id_list: App\Team\Infrastructure\Persistence\Doctrine\Type\UserIdListType

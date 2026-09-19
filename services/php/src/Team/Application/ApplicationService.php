@@ -6,6 +6,7 @@ namespace App\Team\Application;
 
 use App\Team\Domain\Port\TeamRepository;
 use App\Team\Domain\Team;
+use App\Team\Domain\ValueObject\TeamDTO;
 use App\Team\Domain\ValueObject\TeamName;
 use App\Team\Domain\ValueObject\UserId;
 
@@ -26,5 +27,13 @@ final readonly class ApplicationService
         $this->teams->save($team);
 
         return $team->id()->toString();
+    }
+
+    /** @return list<TeamDTO> */
+    public function listTeamsForUser(string $userId): array
+    {
+        $teams = $this->teams->findByUserId(UserId::fromString($userId));
+
+        return array_map(static fn (Team $team): TeamDTO => $team->toDTO(), $teams);
     }
 }

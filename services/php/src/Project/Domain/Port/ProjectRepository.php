@@ -11,5 +11,8 @@ interface ProjectRepository
 {
     public function get(ProjectId $id): Project;
 
+    /** @return list<Project> */
+    public function findByTeamId(string $teamId): array;
+
     public function save(Project $project): void;
 }

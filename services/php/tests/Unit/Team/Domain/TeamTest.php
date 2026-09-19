@@ -36,4 +36,12 @@ final class TeamTest extends UnitTestCase
 
         self::assertFalse($teamA->id()->equals($teamB->id()));
     }
+
+    public function testHasMemberIsTrueForTheCreatorAndFalseForAnyoneElse(): void
+    {
+        $team = Team::register(TeamName::fromString('Podium Team'), $this->creator);
+
+        self::assertTrue($team->hasMember($this->creator));
+        self::assertFalse($team->hasMember(UserId::fromString('user-2')));
+    }
 }

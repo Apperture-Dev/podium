@@ -9,6 +9,7 @@ use App\Project\Domain\Event\ProjectRegistered;
 use App\Project\Domain\Event\ServiceDiscovered;
 use App\Project\Domain\Project;
 use App\Project\Domain\ValueObject\DeclaredService;
+use App\Project\Domain\ValueObject\ProjectName;
 use Tests\Unit\UnitTestCase;
 
 final class ProjectTest extends UnitTestCase
@@ -21,7 +22,7 @@ final class ProjectTest extends UnitTestCase
     {
         parent::setUp();
 
-        $this->project = Project::register('https://github.com/team/repo', 'team-1');
+        $this->project = Project::register('https://github.com/team/repo', 'team-1', ProjectName::fromString('Test Project'));
         $this->project->releaseEvents(); // estos tests son sobre processSourceChanged, no sobre el registro
         $this->backend = new DeclaredService('backend', 'php', 'symfony');
         $this->frontend = new DeclaredService('frontend', 'typescript', 'react');
@@ -29,7 +30,7 @@ final class ProjectTest extends UnitTestCase
 
     public function testRegisterProducesProjectRegistered(): void
     {
-        $project = Project::register('https://github.com/team/repo', 'team-1');
+        $project = Project::register('https://github.com/team/repo', 'team-1', ProjectName::fromString('Test Project'));
 
         $events = $project->releaseEvents();
 
@@ -38,6 +39,7 @@ final class ProjectTest extends UnitTestCase
         self::assertSame($project->id()->toString(), $events[0]->projectId);
         self::assertSame('https://github.com/team/repo', $events[0]->repositoryUrl);
         self::assertSame('team-1', $events[0]->teamId);
+        self::assertSame('Test Project', $project->name()->toString());
     }
 
     public function testKnownServiceProducesApplicationSourceChanged(): void

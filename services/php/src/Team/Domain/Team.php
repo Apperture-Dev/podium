@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Team\Domain;
 
+use App\Team\Domain\ValueObject\TeamDTO;
 use App\Team\Domain\ValueObject\TeamId;
 use App\Team\Domain\ValueObject\TeamName;
 use App\Team\Domain\ValueObject\UserId;
@@ -47,5 +48,21 @@ final class Team
     public function members(): array
     {
         return $this->members;
+    }
+
+    public function hasMember(UserId $userId): bool
+    {
+        foreach ($this->members as $member) {
+            if ($member->equals($userId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function toDTO(): TeamDTO
+    {
+        return new TeamDTO($this->id->toString(), $this->name->toString());
     }
 }

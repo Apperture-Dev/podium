@@ -30,6 +30,11 @@ final class DoctrineApplicationRepository implements ApplicationRepository
         ]);
     }
 
+    public function findByProjectId(string $projectId): array
+    {
+        return $this->entityManager->getRepository(Application::class)->findBy(['projectId' => $projectId]);
+    }
+
     public function save(Application $application): void
     {
         $this->entityManager->persist($application);

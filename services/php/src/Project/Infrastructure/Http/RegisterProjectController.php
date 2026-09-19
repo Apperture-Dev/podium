@@ -40,7 +40,7 @@ final class RegisterProjectController
     public function __invoke(#[MapRequestPayload] RegisterProjectRequest $request): JsonResponse
     {
         try {
-            $projectId = $this->applicationService->registerProject($request->repositoryUrl, $request->teamId);
+            $projectId = $this->applicationService->registerProject($request->repositoryUrl, $request->teamId, $request->name);
         } catch (RuntimeException) {
             return new JsonResponse(['error' => \sprintf('Team "%s" not found.', $request->teamId)], JsonResponse::HTTP_NOT_FOUND);
         }

@@ -7,8 +7,13 @@ namespace App\AppManager\Application;
 use App\AppManager\Domain\Application;
 use App\AppManager\Domain\Port\ApplicationRepository;
 use App\AppManager\Domain\Port\TemplateResolver;
+use App\AppManager\Domain\ValueObject\ApplicationDTO;
 use App\Project\Domain\Port\ProjectRepository;
 use App\Project\Domain\ValueObject\ProjectId;
+use App\Shared\Domain\Exception\AccessDeniedException;
+use App\Team\Domain\Port\TeamRepository;
+use App\Team\Domain\ValueObject\TeamId;
+use App\Team\Domain\ValueObject\UserId;
 use RuntimeException;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -17,6 +22,7 @@ final readonly class ApplicationService
     public function __construct(
         private ApplicationRepository $applications,
         private ProjectRepository $projects,
+        private TeamRepository $teams,
         private TemplateResolver $templateResolver,
         private MessageBusInterface $eventBus,
     ) {
@@ -97,6 +103,28 @@ final readonly class ApplicationService
         $application->markDeployFailed();
 
         $this->applications->save($application);
+    }
+
+    /**
+     * Lista las Application de un Project — antes valida que el userId
+     * autenticado sea miembro del Team dueño de ese Project (Application.teamId
+     * ya está materializado, pero la autorización se resuelve contra el
+     * Team real, no contra la copia).
+     *
+     * @return list<ApplicationDTO>
+     */
+    public function listApplicationsForProject(string $projectId, string $requestingUserId): array
+    {
+        $project = $this->projects->get(ProjectId::fromString($projectId));
+        $team = $this->teams->get(TeamId::fromString($project->teamId()));
+
+        if (!$team->hasMember(UserId::fromString($requestingUserId))) {
+            throw new AccessDeniedException(\sprintf('User "%s" cannot access project "%s".', $requestingUserId, $projectId));
+        }
+
+        $applications = $this->applications->findByProjectId($projectId);
+
+        return array_map(static fn (Application $application): ApplicationDTO => $application->toDTO(), $applications);
     }
 
     private function getByProjectIdAndServiceName(string $projectId, string $serviceName): Application

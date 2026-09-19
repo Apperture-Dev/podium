@@ -72,4 +72,18 @@ final class DoctrineApplicationRepositoryTest extends IntegrationTestCase
 
         $this->repository->get(ApplicationId::generate());
     }
+
+    public function testFindByProjectIdReturnsOnlyApplicationsOfThatProject(): void
+    {
+        $application = Application::register('backend', 'project-1', 'team-1', 'template-1');
+        $otherProjectApplication = Application::register('backend', 'project-2', 'team-1', 'template-1');
+        $this->repository->save($application);
+        $this->repository->save($otherProjectApplication);
+        $this->clearEntityManager();
+
+        $found = $this->repository->findByProjectId('project-1');
+
+        self::assertCount(1, $found);
+        self::assertTrue($found[0]->id()->equals($application->id()));
+    }
 }

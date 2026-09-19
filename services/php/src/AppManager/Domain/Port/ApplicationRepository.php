@@ -18,5 +18,8 @@ interface ApplicationRepository
      */
     public function findByProjectIdAndServiceName(string $projectId, string $serviceName): ?Application;
 
+    /** @return list<Application> */
+    public function findByProjectId(string $projectId): array;
+
     public function save(Application $application): void;
 }

@@ -14,6 +14,9 @@ final readonly class RegisterProjectRequest
         public string $repositoryUrl,
         #[Assert\NotBlank]
         public string $teamId,
+        #[Assert\NotBlank]
+        #[Assert\Length(max: 150)]
+        public string $name,
     ) {
     }
 }

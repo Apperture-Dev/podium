@@ -18,6 +18,7 @@ use App\Deploy\Domain\Port\DeployAttemptRepository;
 use App\Deploy\Domain\ValueObject\DeployAttemptId;
 use App\Project\Domain\Port\ProjectRepository;
 use App\Project\Domain\Project;
+use App\Project\Domain\ValueObject\ProjectName;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
@@ -41,7 +42,7 @@ final class DeployAttemptLifecycleTest extends KernelTestCase
         $this->deployAttempts = $container->get(DeployAttemptRepository::class);
 
         $projects = $container->get(ProjectRepository::class);
-        $project = Project::register('https://github.com/team/repo', 'team-1');
+        $project = Project::register('https://github.com/team/repo', 'team-1', ProjectName::fromString('Test Project'));
         $projects->save($project);
         $this->projectId = $project->id()->toString();
     }

@@ -9,6 +9,7 @@
             <generator strategy="NONE"/>
         </id>
         <field name="hash" type="hash" column="hash" unique="true"/>
+        <field name="name" type="project_name" column="name"/>
         <field name="teamId" type="string" column="team_id" length="36"/>
         <field name="repositoryUrl" type="string" column="repository_url"/>
         <field name="knownServiceNames" type="json" column="known_service_names"/>

@@ -9,7 +9,9 @@ use App\Project\Domain\Event\ProjectRegistered;
 use App\Project\Domain\Event\ServiceDiscovered;
 use App\Project\Domain\ValueObject\DeclaredService;
 use App\Project\Domain\ValueObject\Hash;
+use App\Project\Domain\ValueObject\ProjectDTO;
 use App\Project\Domain\ValueObject\ProjectId;
+use App\Project\Domain\ValueObject\ProjectName;
 
 final class Project
 {
@@ -22,14 +24,15 @@ final class Project
     private function __construct(
         private readonly ProjectId $id,
         private readonly Hash $hash,
+        private readonly ProjectName $name,
         private readonly string $teamId,
         private readonly string $repositoryUrl,
     ) {
     }
 
-    public static function register(string $repositoryUrl, string $teamId): self
+    public static function register(string $repositoryUrl, string $teamId, ProjectName $name): self
     {
-        $project = new self(ProjectId::generate(), Hash::generate(), $teamId, $repositoryUrl);
+        $project = new self(ProjectId::generate(), Hash::generate(), $name, $teamId, $repositoryUrl);
         $project->record(new ProjectRegistered($project->id->toString(), $repositoryUrl, $teamId));
 
         return $project;
@@ -39,11 +42,12 @@ final class Project
     public static function rehydrate(
         ProjectId $id,
         Hash $hash,
+        ProjectName $name,
         string $teamId,
         string $repositoryUrl,
         array $knownServiceNames,
     ): self {
-        $project = new self($id, $hash, $teamId, $repositoryUrl);
+        $project = new self($id, $hash, $name, $teamId, $repositoryUrl);
         $project->knownServiceNames = $knownServiceNames;
 
         return $project;
@@ -95,6 +99,11 @@ final class Project
         return $this->hash;
     }
 
+    public function name(): ProjectName
+    {
+        return $this->name;
+    }
+
     public function teamId(): string
     {
         return $this->teamId;
@@ -109,6 +118,17 @@ final class Project
     public function knownServiceNames(): array
     {
         return $this->knownServiceNames;
+    }
+
+    public function toDTO(): ProjectDTO
+    {
+        return new ProjectDTO(
+            $this->id->toString(),
+            $this->name->toString(),
+            $this->hash->toString(),
+            $this->repositoryUrl,
+            $this->teamId,
+        );
     }
 
     private function record(object $event): void

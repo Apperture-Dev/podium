@@ -22,6 +22,11 @@ final class DoctrineProjectRepository implements ProjectRepository
             ?? throw new RuntimeException(\sprintf('Project "%s" not found.', $id->toString()));
     }
 
+    public function findByTeamId(string $teamId): array
+    {
+        return $this->entityManager->getRepository(Project::class)->findBy(['teamId' => $teamId]);
+    }
+
     public function save(Project $project): void
     {
         $this->entityManager->persist($project);

@@ -13,6 +13,7 @@ classDiagram
         <<Aggregate Root>>
         +id: uuid
         +hash: string
+        +name: string
         +teamId: string
         +knownServiceNames: List~string~
         +registerProject()
@@ -42,13 +43,13 @@ classDiagram
 
 | Elemento | Tipo | Responsabilidad |
 |---|---|---|
-| `Project` | Aggregate Root | Aglutina los servicios (Applications) declarados en el `podium.yaml` de un repo. Dueño del `hash` público y de `teamId`. Descubre servicios nuevos y reparte los cambios de fuente por servicio conocido |
+| `Project` | Aggregate Root | Aglutina los servicios (Applications) declarados en el `podium.yaml` de un repo. Dueño del `hash` público, de `name` (etiqueta legible, elegida por el equipo) y de `teamId`. Descubre servicios nuevos y reparte los cambios de fuente por servicio conocido |
 
 ## Domain Actions
 
 | Action | Comportamiento | Produce |
 |---|---|---|
-| `registerProject` | El equipo da a Podium una `repositoryUrl` por primera vez → crea `Project` (con `hash`, `teamId`) | `Project` creado, publica `ProjectRegistered` |
+| `registerProject` | El equipo da a Podium una `repositoryUrl` y un `name` por primera vez → crea `Project` (con `hash`, `name`, `teamId`) | `Project` creado, publica `ProjectRegistered` |
 | `processSourceChanged` *(consume evento `SourceChanged`)* | Lee `podium.yaml` en la revisión recibida, recorre los servicios declarados: si `serviceName` ya está en `knownServiceNames` → publica `ApplicationSourceChanged`; si es nuevo → lo añade a la lista y publica `ServiceDiscovered` | `ApplicationSourceChanged` y/o `ServiceDiscovered`, uno por servicio afectado |
 
 ## Decisiones de alcance (no son dominio, pero afectan el diseño)
@@ -57,6 +58,7 @@ classDiagram
 |---|---|
 | El reparto de `ApplicationSourceChanged` no filtra por carpeta (`src`) — se dispara para *todos* los servicios conocidos ante cualquier cambio | MVP simple. El desperdicio de reconstruir sin cambios reales se mitiga en Build (`ImageNotChanged`, vía caché de `buildah`), no aquí |
 | Empaquetado de deploy por Application (servicio), no por Project | Un build roto de un servicio no bloquea el despliegue de los demás; revisable si en el futuro hace falta atomicidad entre servicios de un mismo Project |
+| **`name` añadido (2026-09-19)**: `ProjectName` VO (mismo patrón que `TeamName` — libre, máx. 150 caracteres), requerido al registrar | Necesario para el endpoint `GET /api/projects?teamId=` — mostrar un hash no es útil para un listado, cada equipo necesita distinguir sus Projects por nombre |
 
 ## Eventos publicados
 
