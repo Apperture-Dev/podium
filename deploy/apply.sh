@@ -6,12 +6,15 @@ set -euo pipefail
 # secretos que ya existen no se tocan (para no rotar contraseñas de BD ya en
 # uso), así que se puede volver a ejecutar sin problema si se corta a medias.
 #
-# Requiere GITLAB_REGISTRY_USER y GITLAB_REGISTRY_TOKEN en el entorno (Deploy
-# Token o Personal Access Token con scope read_registry) salvo que el secret
-# 'gitlab-token-auth' ya exista.
+# 'gitlab-token-auth' (pull del Container Registry de GitLab) no se crea desde
+# cero: ya existe en el clúster (p.ej. en el namespace "default", reutilizado
+# por varios proyectos del grupo apperturedev) y simplemente se copia al
+# namespace "hostium" — sin decodificar ni mostrar su contenido en ningún
+# momento. GITLAB_TOKEN_SOURCE_NS permite apuntar a otro namespace de origen.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NAMESPACE="hostium"
+GITLAB_TOKEN_SOURCE_NS="${GITLAB_TOKEN_SOURCE_NS:-default}"
 
 log() { printf '\n\033[1;34m==>\033[0m %s\n' "$1"; }
 warn() { printf '\033[1;33mAVISO:\033[0m %s\n' "$1" >&2; }
@@ -23,6 +26,7 @@ require_cmd() {
 
 require_cmd kubectl
 require_cmd openssl
+require_cmd python3
 
 kubectl cluster-info >/dev/null 2>&1 \
   || die "No hay acceso al clúster (revisa tu kubeconfig/contexto)."
@@ -69,13 +73,24 @@ ensure_secret podium-app generic podium-app \
 if kubectl -n "$NAMESPACE" get secret gitlab-token-auth >/dev/null 2>&1; then
   log "Secret 'gitlab-token-auth' ya existe, no se toca"
 else
-  : "${GITLAB_REGISTRY_USER:?Falta GITLAB_REGISTRY_USER (Deploy Token o PAT con scope read_registry)}"
-  : "${GITLAB_REGISTRY_TOKEN:?Falta GITLAB_REGISTRY_TOKEN}"
-  log "Creando secret 'gitlab-token-auth'"
-  kubectl -n "$NAMESPACE" create secret docker-registry gitlab-token-auth \
-    --docker-server=registry.gitlab.com \
-    --docker-username="$GITLAB_REGISTRY_USER" \
-    --docker-password="$GITLAB_REGISTRY_TOKEN"
+  kubectl -n "$GITLAB_TOKEN_SOURCE_NS" get secret gitlab-token-auth >/dev/null 2>&1 \
+    || die "No existe 'gitlab-token-auth' en el namespace '$GITLAB_TOKEN_SOURCE_NS'. Ajusta GITLAB_TOKEN_SOURCE_NS o créalo a mano (ver deploy/README.md)."
+  log "Copiando secret 'gitlab-token-auth' desde '$GITLAB_TOKEN_SOURCE_NS'"
+  # Solo se relaya el campo "data" (base64 opaco) a un Secret nuevo en el
+  # namespace destino — en ningún momento se decodifica ni se imprime el
+  # contenido real de la credencial.
+  kubectl -n "$GITLAB_TOKEN_SOURCE_NS" get secret gitlab-token-auth -o json | python3 -c "
+import json, sys
+src = json.load(sys.stdin)
+out = {
+    'apiVersion': 'v1',
+    'kind': 'Secret',
+    'type': src['type'],
+    'metadata': {'name': 'gitlab-token-auth', 'namespace': '$NAMESPACE'},
+    'data': src['data'],
+}
+json.dump(out, sys.stdout)
+" | kubectl apply -f -
 fi
 
 log "Dando de alta la Application de ArgoCD"

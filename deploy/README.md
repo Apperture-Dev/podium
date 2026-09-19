@@ -12,10 +12,10 @@ deploy/
 └── apply.sh          # automatiza los pasos 1-3 de abajo
 ```
 
-`./deploy/apply.sh` automatiza los pasos 1-3 (verificaciones, namespace, secretos idempotentes,
-alta de la `Application`) — requiere `GITLAB_REGISTRY_USER`/`GITLAB_REGISTRY_TOKEN` en el entorno
-salvo que `gitlab-token-auth` ya exista. Los pasos manuales se documentan igual abajo por si hace
-falta ejecutarlos sueltos o depurar algo.
+`./deploy/apply.sh` automatiza los pasos 1-3 (verificaciones, namespace, secretos idempotentes —
+`gitlab-token-auth` se copia del namespace `default`, configurable con `GITLAB_TOKEN_SOURCE_NS` —
+y alta de la `Application`). Los pasos manuales se documentan igual abajo por si hace falta
+ejecutarlos sueltos o depurar algo.
 
 ## 1. Secretos a crear a mano (antes del primer sync)
 
@@ -41,12 +41,20 @@ kubectl create secret generic keycloak-admin -n hostium \
 kubectl create secret generic podium-app -n hostium \
   --from-literal=APP_SECRET="$(openssl rand -hex 32)"
 
-# Credenciales para pull de imágenes desde el Container Registry de GitLab
-# (usuario: un Deploy Token o Personal Access Token con scope read_registry)
-kubectl create secret docker-registry gitlab-token-auth -n hostium \
-  --docker-server=registry.gitlab.com \
-  --docker-username=<usuario-o-deploy-token> \
-  --docker-password=<token>
+# Pull de imágenes desde el Container Registry de GitLab: NO se crea desde
+# cero — el secret "gitlab-token-auth" ya existe en el clúster (p.ej. en el
+# namespace "default", reutilizado por otros proyectos del grupo
+# apperturedev) y solo se copia, sin decodificar su contenido:
+kubectl get secret gitlab-token-auth -n default -o json | python3 -c "
+import json, sys
+src = json.load(sys.stdin)
+out = {
+    'apiVersion': 'v1', 'kind': 'Secret', 'type': src['type'],
+    'metadata': {'name': 'gitlab-token-auth', 'namespace': 'hostium'},
+    'data': src['data'],
+}
+json.dump(out, sys.stdout)
+" | kubectl apply -f -
 ```
 
 `postgres-app` (contraseña de la base `app` que consume `php`) la genera y gestiona CNPG
