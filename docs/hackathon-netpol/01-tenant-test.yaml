@@ -1,0 +1,134 @@
+# Namespace de prueba con la política completa de tenant del hackathon.
+# Ajusta los tres valores marcados con TODO antes de aplicar.
+#
+#   kubectl apply -f 01-tenant-test.yaml
+#   ./test.sh
+#   kubectl delete ns np-test
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: np-test
+  labels:
+    hackathon: "true"
+    pod-security.kubernetes.io/enforce: baseline
+---
+# 1. Default deny: nada entra, nada sale.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 00-default-deny
+  namespace: np-test
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# 2. Ingress solo desde el ingress controller.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 10-allow-ingress-controller
+  namespace: np-test
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx   # TODO: nombre real del ns de nginx
+---
+# 3. Egress a DNS (CoreDNS en kube-system), UDP y TCP.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 20-allow-dns
+  namespace: np-test
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+# 4. Egress a Internet solo por 443, excluyendo todo lo interno.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 30-allow-egress-https
+  namespace: np-test
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.42.0.0/16      # TODO: cluster-cidr real de k3s (pods)
+              - 10.43.0.0/16      # TODO: service-cidr real de k3s (services, incl. API 10.43.0.1)
+              - 100.64.0.0/10     # Tailscale
+              - 169.254.0.0/16    # link-local / metadata
+              # - 192.168.1.0/24  # TODO: LAN de los nodos si aplica
+      ports:
+        - port: 443
+          protocol: TCP
+---
+# 5. Intra-namespace: los pods del mismo tenant pueden hablarse (app <-> su Postgres).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 40-allow-same-namespace
+  namespace: np-test
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - podSelector: {}
+---
+# 6. OPCIONAL: scrape de Prometheus desde monitoring (solo si das observabilidad al tenant).
+# apiVersion: networking.k8s.io/v1
+# kind: NetworkPolicy
+# metadata:
+#   name: 50-allow-monitoring-scrape
+#   namespace: np-test
+# spec:
+#   podSelector: {}
+#   policyTypes: [Ingress]
+#   ingress:
+#     - from:
+#         - namespaceSelector:
+#             matchLabels:
+#               kubernetes.io/metadata.name: monitoring
+---
+# Pod objetivo para las pruebas de ingress (algo que escuche en :80 dentro del tenant).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: target
+  namespace: np-test
+  labels:
+    app: target
+spec:
+  containers:
+    - name: nginx
+      image: nginxinc/nginx-unprivileged:alpine
+      ports:
+        - containerPort: 8080
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true
