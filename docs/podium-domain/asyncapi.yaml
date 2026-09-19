@@ -1,0 +1,579 @@
+asyncapi: 3.1.0
+info:
+  title: Podium — Event Catalog
+  version: 1.0.0
+  description: >
+    Contrato formal de todos los eventos de dominio que cruzan bounded contexts
+    en Podium, vía Redis Streams. Fuente de verdad *tipada* — complementa a
+    docs/podium-domain/event-catalog.md (que explica el *por qué* de cada
+    decisión) y a los `model.md` de cada BC (que mandan si hay conflicto).
+    Necesario porque Build y Deploy están en Go y el resto en PHP: sin un
+    contrato explícito, un cambio de forma (`projectId` vs `project_id`) rompe
+    la integración en runtime, no en compilación.
+  license:
+    name: Proprietary
+
+defaultContentType: application/json
+
+servers:
+  redis:
+    host: '{host}:{port}'
+    protocol: redis
+    description: >
+      Redis Streams — un stream por evento (ver cada canal), consumer groups
+      por BC consumidor. En dev/test: servicio `redis` de
+      services/php/compose.yaml. En k3s: instancia gestionada por el operador
+      OpsTree (ver docs/hackathon-plan).
+    variables:
+      host:
+        default: redis
+      port:
+        default: '6379'
+
+channels:
+  sourceChanged:
+    address: podium.source-changed
+    description: Un stream por evento — mensajes serializados como JSON (envelope + payload).
+    messages:
+      SourceChanged:
+        $ref: '#/components/messages/SourceChanged'
+
+  applicationSourceChanged:
+    address: podium.application-source-changed
+    messages:
+      ApplicationSourceChanged:
+        $ref: '#/components/messages/ApplicationSourceChanged'
+
+  serviceDiscovered:
+    address: podium.service-discovered
+    messages:
+      ServiceDiscovered:
+        $ref: '#/components/messages/ServiceDiscovered'
+
+  projectRegistered:
+    address: podium.project-registered
+    messages:
+      ProjectRegistered:
+        $ref: '#/components/messages/ProjectRegistered'
+
+  applicationRegistered:
+    address: podium.application-registered
+    description: Sin consumidor identificado todavía (ver app-manager/model.md) — no bloquea, el canal ya queda tipado.
+    messages:
+      ApplicationRegistered:
+        $ref: '#/components/messages/ApplicationRegistered'
+
+  applicationBuildRequested:
+    address: podium.application-build-requested
+    messages:
+      ApplicationBuildRequested:
+        $ref: '#/components/messages/ApplicationBuildRequested'
+
+  buildSucceeded:
+    address: podium.build-succeeded
+    messages:
+      BuildSucceeded:
+        $ref: '#/components/messages/BuildSucceeded'
+
+  buildFailed:
+    address: podium.build-failed
+    description: Único punto real de fanout — 3 consumer groups sobre el mismo stream (App Manager, Notification, Remediation).
+    messages:
+      BuildFailed:
+        $ref: '#/components/messages/BuildFailed'
+
+  applicationDeployRequested:
+    address: podium.application-deploy-requested
+    description: Payload no confirmado — Deploy no tiene discovery propio todavía. Inferido por simetría con ApplicationBuildRequested.
+    messages:
+      ApplicationDeployRequested:
+        $ref: '#/components/messages/ApplicationDeployRequested'
+
+  deploySucceeded:
+    address: podium.deploy-succeeded
+    description: Payload no confirmado — Deploy no tiene discovery propio todavía.
+    messages:
+      DeploySucceeded:
+        $ref: '#/components/messages/DeploySucceeded'
+
+  deployFailed:
+    address: podium.deploy-failed
+    description: >
+      Payload no confirmado — Deploy no tiene discovery propio todavía.
+      Fanout a 2 consumer groups (App Manager, Remediation).
+    messages:
+      DeployFailed:
+        $ref: '#/components/messages/DeployFailed'
+
+operations:
+  publishSourceChanged:
+    action: send
+    channel:
+      $ref: '#/channels/sourceChanged'
+    summary: AppSource detecta que la revisión cambió.
+
+  consumeSourceChanged:
+    action: receive
+    channel:
+      $ref: '#/channels/sourceChanged'
+    summary: Project procesa el cambio y reparte por servicio conocido.
+
+  publishApplicationSourceChanged:
+    action: send
+    channel:
+      $ref: '#/channels/applicationSourceChanged'
+    summary: Project reparte SourceChanged a un servicio ya conocido.
+
+  consumeApplicationSourceChanged:
+    action: receive
+    channel:
+      $ref: '#/channels/applicationSourceChanged'
+    summary: App Manager marca la Application como Building.
+
+  publishServiceDiscovered:
+    action: send
+    channel:
+      $ref: '#/channels/serviceDiscovered'
+    summary: Project encuentra un serviceName nuevo en el podium.yaml.
+
+  consumeServiceDiscovered:
+    action: receive
+    channel:
+      $ref: '#/channels/serviceDiscovered'
+    summary: App Manager registra una Application nueva.
+
+  publishProjectRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/projectRegistered'
+    summary: Se registra un Project nuevo.
+
+  consumeProjectRegistered:
+    action: receive
+    channel:
+      $ref: '#/channels/projectRegistered'
+    summary: AppSource reacciona creando su propio aggregate — reemplaza la idea de "se crean a la vez".
+
+  publishApplicationRegistered:
+    action: send
+    channel:
+      $ref: '#/channels/applicationRegistered'
+    summary: Application entra en estado Created.
+
+  publishApplicationBuildRequested:
+    action: send
+    channel:
+      $ref: '#/channels/applicationBuildRequested'
+    summary: Application entra en estado Building.
+
+  consumeApplicationBuildRequested:
+    action: receive
+    channel:
+      $ref: '#/channels/applicationBuildRequested'
+    summary: Build arranca un BuildJob nuevo.
+
+  publishBuildSucceeded:
+    action: send
+    channel:
+      $ref: '#/channels/buildSucceeded'
+    summary: BuildJob termina en Succeeded.
+
+  consumeBuildSucceeded:
+    action: receive
+    channel:
+      $ref: '#/channels/buildSucceeded'
+    summary: App Manager marca BuildSucceeded y dispara ApplicationDeployRequested al transicionar a Deploying.
+
+  publishBuildFailed:
+    action: send
+    channel:
+      $ref: '#/channels/buildFailed'
+    summary: BuildJob termina en Failed (yaml inválido o fallo de compilación).
+
+  consumeBuildFailedAppManager:
+    action: receive
+    channel:
+      $ref: '#/channels/buildFailed'
+    summary: App Manager marca la Application como BuildFailed. (consumer group "app-manager")
+
+  consumeBuildFailedNotification:
+    action: receive
+    channel:
+      $ref: '#/channels/buildFailed'
+    summary: Notification avisa — no decide, no diagnostica. (consumer group "notification")
+
+  consumeBuildFailedRemediation:
+    action: receive
+    channel:
+      $ref: '#/channels/buildFailed'
+    summary: Remediation reacciona con reglas propias (camino equipo vs. plataforma). (consumer group "remediation")
+
+  publishApplicationDeployRequested:
+    action: send
+    channel:
+      $ref: '#/channels/applicationDeployRequested'
+    summary: Application transiciona Built → Deploying.
+
+  consumeApplicationDeployRequested:
+    action: receive
+    channel:
+      $ref: '#/channels/applicationDeployRequested'
+    summary: Deploy lleva la imagen a estado corriendo y verifica salud.
+
+  publishDeploySucceeded:
+    action: send
+    channel:
+      $ref: '#/channels/deploySucceeded'
+    summary: El despliegue queda corriendo y saludable.
+
+  consumeDeploySucceeded:
+    action: receive
+    channel:
+      $ref: '#/channels/deploySucceeded'
+    summary: App Manager marca la Application como Deployed.
+
+  publishDeployFailed:
+    action: send
+    channel:
+      $ref: '#/channels/deployFailed'
+    summary: Se agotan los reintentos de health-check (invariante — 3 intentos fallidos).
+
+  consumeDeployFailedAppManager:
+    action: receive
+    channel:
+      $ref: '#/channels/deployFailed'
+    summary: App Manager marca la Application como DeployFailed. (consumer group "app-manager")
+
+  consumeDeployFailedRemediation:
+    action: receive
+    channel:
+      $ref: '#/channels/deployFailed'
+    summary: Remediation reacciona con reglas propias. (consumer group "remediation")
+
+components:
+  messages:
+    SourceChanged:
+      name: SourceChanged
+      title: Source changed
+      summary: La revisión actual de un AppSource difiere de la última conocida.
+      payload:
+        $ref: '#/components/schemas/Envelope_SourceChanged'
+
+    ApplicationSourceChanged:
+      name: ApplicationSourceChanged
+      title: Application source changed
+      summary: Project repartió un SourceChanged a un serviceName ya conocido.
+      payload:
+        $ref: '#/components/schemas/Envelope_ApplicationSourceChanged'
+
+    ServiceDiscovered:
+      name: ServiceDiscovered
+      title: Service discovered
+      summary: Project encontró un serviceName nuevo en el podium.yaml.
+      payload:
+        $ref: '#/components/schemas/Envelope_ServiceDiscovered'
+
+    ProjectRegistered:
+      name: ProjectRegistered
+      title: Project registered
+      summary: Se registró un Project nuevo.
+      payload:
+        $ref: '#/components/schemas/Envelope_ProjectRegistered'
+
+    ApplicationRegistered:
+      name: ApplicationRegistered
+      title: Application registered
+      summary: Una Application entró en estado Created.
+      payload:
+        $ref: '#/components/schemas/Envelope_ApplicationRegistered'
+
+    ApplicationBuildRequested:
+      name: ApplicationBuildRequested
+      title: Application build requested
+      summary: App Manager pide a Build que arranque un intento de build.
+      payload:
+        $ref: '#/components/schemas/Envelope_ApplicationBuildRequested'
+
+    BuildSucceeded:
+      name: BuildSucceeded
+      title: Build succeeded
+      summary: Un BuildJob terminó con éxito.
+      payload:
+        $ref: '#/components/schemas/Envelope_BuildSucceeded'
+
+    BuildFailed:
+      name: BuildFailed
+      title: Build failed
+      summary: Un BuildJob falló (yaml inválido o error de compilación).
+      payload:
+        $ref: '#/components/schemas/Envelope_BuildFailed'
+
+    ApplicationDeployRequested:
+      name: ApplicationDeployRequested
+      title: Application deploy requested
+      summary: App Manager pide a Deploy que lleve la imagen a estado corriendo.
+      payload:
+        $ref: '#/components/schemas/Envelope_ApplicationDeployRequested'
+
+    DeploySucceeded:
+      name: DeploySucceeded
+      title: Deploy succeeded
+      summary: El despliegue quedó corriendo y saludable.
+      payload:
+        $ref: '#/components/schemas/Envelope_DeploySucceeded'
+
+    DeployFailed:
+      name: DeployFailed
+      title: Deploy failed
+      summary: Se agotaron los reintentos de health-check.
+      payload:
+        $ref: '#/components/schemas/Envelope_DeployFailed'
+
+  schemas:
+    Envelope:
+      type: object
+      description: >
+        Sobre canónico de todo mensaje publicado — independiente del payload
+        de negocio. `correlationId` es una convención de infraestructura, no
+        parte del lenguaje ubicuo de ningún BC: cada BC lo reenvía sin
+        interpretarlo.
+      properties:
+        eventId:
+          type: string
+          format: uuid
+          description: UUIDv7 del propio evento.
+        type:
+          type: string
+          description: Nombre del canal/stream, formato `podium.<kebab-case>`.
+        occurredAt:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+          format: uuid
+          description: Se propaga desde el primer evento de la cadena para trazar un flujo completo.
+      required: [eventId, type, occurredAt]
+
+    # --- Un Envelope_<Evento> por mensaje: mismo sobre, payload específico ---
+
+    Envelope_SourceChanged:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/SourceChangedPayload'
+          required: [payload]
+
+    Envelope_ApplicationSourceChanged:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/ApplicationSourceChangedPayload'
+          required: [payload]
+
+    Envelope_ServiceDiscovered:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/ServiceDiscoveredPayload'
+          required: [payload]
+
+    Envelope_ProjectRegistered:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/ProjectRegisteredPayload'
+          required: [payload]
+
+    Envelope_ApplicationRegistered:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/ApplicationRegisteredPayload'
+          required: [payload]
+
+    Envelope_ApplicationBuildRequested:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/ApplicationBuildRequestedPayload'
+          required: [payload]
+
+    Envelope_BuildSucceeded:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/BuildSucceededPayload'
+          required: [payload]
+
+    Envelope_BuildFailed:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/BuildFailedPayload'
+          required: [payload]
+
+    Envelope_ApplicationDeployRequested:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/ApplicationDeployRequestedPayload'
+          required: [payload]
+
+    Envelope_DeploySucceeded:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/DeploySucceededPayload'
+          required: [payload]
+
+    Envelope_DeployFailed:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/DeployFailedPayload'
+          required: [payload]
+
+    # --- Payloads de negocio — uno por evento, sin el sobre ---
+
+    SourceChangedPayload:
+      type: object
+      properties:
+        projectId: { type: string, format: uuid }
+        revision: { type: string, description: 'SHA de la revisión detectada' }
+        repositoryUrl: { type: string, format: uri }
+        provider: { type: string, enum: [github] }
+      required: [projectId, revision, repositoryUrl, provider]
+
+    ApplicationSourceChangedPayload:
+      type: object
+      properties:
+        serviceName: { type: string }
+        projectId: { type: string, format: uuid }
+        revision: { type: string }
+        repositoryUrl: { type: string, format: uri }
+        provider: { type: string, enum: [github] }
+      required: [serviceName, projectId, revision, repositoryUrl, provider]
+
+    ServiceDiscoveredPayload:
+      type: object
+      properties:
+        serviceName: { type: string }
+        projectId: { type: string, format: uuid }
+        lang: { type: string }
+        framework: { type: string }
+      required: [serviceName, projectId, lang, framework]
+
+    ProjectRegisteredPayload:
+      type: object
+      properties:
+        projectId: { type: string, format: uuid }
+        repositoryUrl: { type: string, format: uri }
+        teamId: { type: string, format: uuid }
+      required: [projectId, repositoryUrl, teamId]
+
+    ApplicationRegisteredPayload:
+      type: object
+      description: Sin consumidor identificado — shape provisional, mismo que ApplicationDTO.
+      properties:
+        id: { type: string, format: uuid }
+        serviceName: { type: string }
+        projectId: { type: string, format: uuid }
+        teamId: { type: string, format: uuid }
+        state: { type: string, enum: [Created, Building, Built, Deploying, Deployed, BuildFailed, DeployFailed] }
+        version: { type: string, description: 'Timestamp incremental — optimistic lock + tag de despliegue, no semver' }
+        hasPendingSourceChange: { type: boolean }
+      required: [id, serviceName, projectId, teamId, state, version, hasPendingSourceChange]
+
+    ApplicationBuildRequestedPayload:
+      type: object
+      properties:
+        serviceName: { type: string }
+        projectId: { type: string, format: uuid }
+        templateId: { type: string, format: uuid }
+        version: { type: string }
+        revision: { type: string }
+        repositoryUrl: { type: string, format: uri }
+        provider: { type: string, enum: [github] }
+      required: [serviceName, projectId, templateId, version, revision, repositoryUrl, provider]
+
+    BuildSucceededPayload:
+      type: object
+      properties:
+        serviceName: { type: string }
+        projectId: { type: string, format: uuid }
+        version: { type: string }
+        image: { type: string, description: 'Referencia a la imagen (tag/digest)' }
+        deployEnvVars:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Leídas de podium.yaml, se reparten hacia adelante'
+        databaseDeclaration:
+          type: object
+          additionalProperties: { type: string }
+      required: [serviceName, projectId, version, image]
+
+    BuildFailedPayload:
+      type: object
+      properties:
+        serviceName: { type: string }
+        projectId: { type: string, format: uuid }
+        version: { type: string }
+        errorMessage: { type: string, description: 'Yaml inválido o fallo de compilación — misma categoría' }
+      required: [serviceName, projectId, version, errorMessage]
+
+    ApplicationDeployRequestedPayload:
+      type: object
+      description: No confirmado en ningún model.md — Deploy sin discovery propio. Inferido por simetría con BuildSucceeded.
+      properties:
+        serviceName: { type: string }
+        projectId: { type: string, format: uuid }
+        version: { type: string }
+        image: { type: string }
+        deployEnvVars:
+          type: object
+          additionalProperties: { type: string }
+        databaseDeclaration:
+          type: object
+          additionalProperties: { type: string }
+      required: [serviceName, projectId, version, image]
+
+    DeploySucceededPayload:
+      type: object
+      description: No confirmado — Deploy sin discovery propio. Mínimo inferible.
+      properties:
+        serviceName: { type: string }
+        projectId: { type: string, format: uuid }
+        version: { type: string }
+      required: [serviceName, projectId, version]
+
+    DeployFailedPayload:
+      type: object
+      description: No confirmado — Deploy sin discovery propio. Mínimo inferible.
+      properties:
+        serviceName: { type: string }
+        projectId: { type: string, format: uuid }
+        version: { type: string }
+        errorMessage: { type: string }
+      required: [serviceName, projectId, version, errorMessage]

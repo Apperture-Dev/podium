@@ -4,6 +4,8 @@
 
 Fuente: `project/model.md`, `build/model.md`, `app-manager/model.md`, `appsource/discovery.md`. Este documento no reemplaza esos — si hay conflicto, esos mandan y este archivo se corrige.
 
+**Contrato formal y tipado**: [`asyncapi.yaml`](./asyncapi.yaml) (AsyncAPI 3.1, validado con `@asyncapi/cli validate`) — mismo contenido que este documento pero en JSON Schema por evento, pensado para generar tipos/validar payloads en Go y PHP en vez de copiar los campos a mano. Si hay conflicto entre este Markdown y `asyncapi.yaml`, corregir ambos juntos — no deberían divergir.
+
 ---
 
 ## Envelope canónico
