@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { registerTeam } from "@/lib/api/teams";
-import { getCurrentUserId } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 
@@ -30,11 +29,7 @@ export function TeamForm() {
 
     setIsSubmitting(true);
     try {
-      const creatorUserId = await getCurrentUserId();
-      const { id } = await registerTeam({
-        name: name.trim(),
-        creatorUserId,
-      });
+      const { id } = await registerTeam({ name: name.trim() });
       addTeam({ id, name: name.trim() });
       router.push("/");
     } catch (error) {

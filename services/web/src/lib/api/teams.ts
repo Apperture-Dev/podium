@@ -7,7 +7,6 @@ export type Team = {
 
 export type RegisterTeamInput = {
   name: string;
-  creatorUserId: string;
 };
 
 export type RegisterTeamResponse = {

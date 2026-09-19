@@ -14,6 +14,16 @@
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
       "redirectUris": ["*"]
+    },
+    {
+      "clientId": "podium-web",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["*"]
     }
   ],
   "users": [

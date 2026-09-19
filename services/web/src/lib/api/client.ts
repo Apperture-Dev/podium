@@ -1,8 +1,10 @@
-import { getAccessToken } from "./auth";
-
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8090";
-
+/**
+ * Always same-origin — these hit this Next.js app's own `/api/*` Route
+ * Handlers, which read the httpOnly session cookie (see lib/auth/session.ts)
+ * and proxy to the Symfony API with the Bearer token attached server-side.
+ * The JWT never reaches the browser, so there's nothing to attach here and
+ * no CORS gap to work around.
+ */
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -11,36 +13,6 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
-}
-
-async function authenticatedFetch(
-  path: string,
-  init: RequestInit,
-  retrying = false,
-): Promise<Response> {
-  const token = await getAccessToken();
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      headers: {
-        ...init.headers,
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  } catch {
-    throw new ApiError(
-      "No se pudo conectar con el servidor. Comprueba que el backend está disponible.",
-    );
-  }
-
-  // Token may have expired between requests; refresh once and retry.
-  if (response.status === 401 && !retrying) {
-    await getAccessToken(true);
-    return authenticatedFetch(path, init, true);
-  }
-
-  return response;
 }
 
 async function parseErrorMessage(response: Response): Promise<string> {
@@ -53,7 +25,14 @@ async function parseErrorMessage(response: Response): Promise<string> {
 }
 
 export async function getJson<TResponse>(path: string): Promise<TResponse> {
-  const response = await authenticatedFetch(path, { method: "GET" });
+  let response: Response;
+  try {
+    response = await fetch(path, { cache: "no-store" });
+  } catch {
+    throw new ApiError(
+      "No se pudo conectar con el servidor. Comprueba que el backend está disponible.",
+    );
+  }
   if (!response.ok) {
     throw new ApiError(await parseErrorMessage(response), response.status);
   }
@@ -64,11 +43,18 @@ export async function postJson<TResponse>(
   path: string,
   body: unknown,
 ): Promise<TResponse> {
-  const response = await authenticatedFetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(
+      "No se pudo conectar con el servidor. Comprueba que el backend está disponible.",
+    );
+  }
   if (!response.ok) {
     throw new ApiError(await parseErrorMessage(response), response.status);
   }
