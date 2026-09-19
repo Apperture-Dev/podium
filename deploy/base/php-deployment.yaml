@@ -49,8 +49,13 @@ spec:
                 secretKeyRef:
                   name: podium-app
                   key: APP_SECRET
+            # serializer=0: desactiva el SERIALIZER_PHP por defecto de
+            # symfony/redis-messenger en la conexión de phpredis — evita una
+            # capa redundante de serialize() de PHP sobre el propio mensaje,
+            # necesaria para que services/build-launcher (Go) pueda leer JSON
+            # limpio de podium.build-job-requested/job-succeeded/job-failed.
             - name: MESSENGER_TRANSPORT_DSN
-              value: "redis://redis-master:6379"
+              value: "redis://redis-master:6379?serializer=0"
             - name: KEYCLOAK_JWKS_URL
               value: "http://keycloak:8080/realms/podium/protocol/openid-connect/certs"
           resources:

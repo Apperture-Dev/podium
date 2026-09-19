@@ -86,17 +86,24 @@ framework:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options: { stream: 'podium.application-build-requested', group: 'build', consumer: 'build-1' }
 
-            # --- Build -> lanzador de Kubernetes (Go, diferido — sin consumidor real todavía) ---
+            # --- Build -> lanzador de Kubernetes (Go, services/build-launcher) ---
+            # serializer explícito: estos tres transports cruzan a un consumidor/productor
+            # en Go, así que necesitan JSON real (body + headers.type) en vez del
+            # serializador nativo de PHP (el default de este proyecto, ver los demás
+            # transports de este fichero) — ver docs/ del plan del build-launcher.
             build_job_requested:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: messenger.transport.symfony_serializer
                 options: { stream: 'podium.build-job-requested', group: 'unassigned', consumer: 'unassigned-1' }
 
-            # --- Lanzador de Kubernetes -> Build (Go, diferido — sin productor real todavía) ---
+            # --- Lanzador de Kubernetes -> Build (Go, services/build-launcher) ---
             job_succeeded:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: messenger.transport.symfony_serializer
                 options: { stream: 'podium.job-succeeded', group: 'build', consumer: 'build-1' }
             job_failed:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: messenger.transport.symfony_serializer
                 options: { stream: 'podium.job-failed', group: 'build', consumer: 'build-1' }
 
             # --- Deploy -> lanzador de ArgoCD (Go, diferido — sin consumidor real todavía) ---
