@@ -1,10 +1,6 @@
 # CNPG Cluster llamado "postgres" a propósito: el secret autogenerado por CNPG
 # para la base de datos por defecto ("app", owner "app") queda como "postgres-app",
 # sin configuración adicional — mismo truco de naming que craft-market-gitops.
-#
-# Segunda base de datos "keycloak" en el mismo Cluster: rol gestionado por CNPG
-# (managed.roles) con la contraseña en un Secret creado a mano (ver deploy/README.md),
-# más un CR Database (CNPG >=1.24) que la crea con ese rol como owner.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -15,20 +11,21 @@ spec:
     size: 2Gi
   monitoring:
     enablePodMonitor: true
-  managed:
-    roles:
-      - name: keycloak
-        ensure: present
-        login: true
-        passwordSecret:
-          name: keycloak-db-role
 ---
+# Segunda base de datos ("keycloak") en el mismo Cluster, con el MISMO rol
+# "app" que ya crea el bootstrap por defecto de CNPG como owner — en vez de
+# declarar un rol nuevo (managed.roles) con un Secret de contraseña creado a
+# mano. Así Keycloak se conecta con las mismas credenciales autogeneradas en
+# "postgres-app" (mismo username/password, distinto nombre de base), sin
+# ningún secreto manual para Postgres. Contrapartida asumida para esta primera
+# versión: el rol "app" tiene acceso a ambas bases — aceptable porque php y
+# Keycloak son ambos servicios propios de Podium, no tenants distintos.
 apiVersion: postgresql.cnpg.io/v1
 kind: Database
 metadata:
   name: keycloak
 spec:
   name: keycloak
-  owner: keycloak
+  owner: app
   cluster:
     name: postgres

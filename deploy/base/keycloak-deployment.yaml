@@ -42,15 +42,17 @@ spec:
               value: "postgres-rw"
             - name: KC_DB_URL_DATABASE
               value: "keycloak"
+            # Mismo rol/credenciales que usa php (secret autogenerado por
+            # CNPG), apuntando a la base "keycloak" en vez de "app".
             - name: KC_DB_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: keycloak-db-role
+                  name: postgres-app
                   key: username
             - name: KC_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: keycloak-db-role
+                  name: postgres-app
                   key: password
             - name: KEYCLOAK_ADMIN
               valueFrom:

@@ -25,12 +25,6 @@ automáticamente se crean directamente en el clúster, fuera de git:
 ```bash
 kubectl create namespace hostium
 
-# Rol de BD de Keycloak (referenciado por managed.roles en deploy/base/database.yaml
-# y por KC_DB_USERNAME/KC_DB_PASSWORD en deploy/base/keycloak-deployment.yaml)
-kubectl create secret generic keycloak-db-role -n hostium \
-  --from-literal=username=keycloak \
-  --from-literal=password="$(openssl rand -base64 32)"
-
 # Admin inicial de Keycloak (KEYCLOAK_ADMIN/KEYCLOAK_ADMIN_PASSWORD del propio
 # Keycloak, y KEYCLOAK_ADMIN_USERNAME/PASSWORD que usa el flujo /register de web)
 kubectl create secret generic keycloak-admin -n hostium \
@@ -57,8 +51,10 @@ json.dump(out, sys.stdout)
 " | kubectl apply -f -
 ```
 
-`postgres-app` (contraseña de la base `app` que consume `php`) la genera y gestiona CNPG
-automáticamente al aplicar `deploy/base/database.yaml` — no se crea a mano.
+`postgres-app` (credenciales del rol `app`) la genera y gestiona CNPG automáticamente al aplicar
+`deploy/base/database.yaml` — no se crea a mano. Keycloak reutiliza ese mismo secret (mismo rol,
+solo cambia la base a la que apunta: `keycloak` en vez de `app`) en lugar de tener un rol y un
+secret propios — ver el comentario en `deploy/base/database.yaml`.
 
 ## 2. Verificaciones previas en el clúster real
 

@@ -59,10 +59,6 @@ ensure_secret() {
   kubectl -n "$NAMESPACE" create secret "$@"
 }
 
-ensure_secret keycloak-db-role generic keycloak-db-role \
-  --from-literal=username=keycloak \
-  --from-literal=password="$(openssl rand -base64 32)"
-
 ensure_secret keycloak-admin generic keycloak-admin \
   --from-literal=username=admin \
   --from-literal=password="$(openssl rand -base64 32)"
