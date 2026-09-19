@@ -9,6 +9,8 @@ doctrine:
             team_name: App\Team\Infrastructure\Persistence\Doctrine\Type\TeamNameType
             user_id_list: App\Team\Infrastructure\Persistence\Doctrine\Type\UserIdListType
             app_source_id: App\AppSource\Infrastructure\Persistence\Doctrine\Type\AppSourceIdType
+            application_id: App\AppManager\Infrastructure\Persistence\Doctrine\Type\ApplicationIdType
+            application_state: App\AppManager\Infrastructure\Persistence\Doctrine\Type\ApplicationStateType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
@@ -36,6 +38,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/AppSource/Infrastructure/Persistence/Doctrine/mapping'
                 prefix: 'App\AppSource\Domain'
                 alias: AppSource
+            AppManager:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/AppManager/Infrastructure/Persistence/Doctrine/mapping'
+                prefix: 'App\AppManager\Domain'
+                alias: AppManager
 
 when@test:
     doctrine:

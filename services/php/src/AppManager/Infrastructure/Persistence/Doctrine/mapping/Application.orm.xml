@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                       https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        historyLogs (ApplicationHistoryLog) no se mapea todavía — persistencia
+        real diferida, ver app-manager/model.md. La lógica de dominio que los
+        produce ya existe y está testeada.
+    -->
+    <entity name="App\AppManager\Domain\Application" table="applications">
+        <id name="id" type="application_id" column="id">
+            <generator strategy="NONE"/>
+        </id>
+        <field name="serviceName" type="string" column="service_name"/>
+        <field name="projectId" type="string" column="project_id" length="36"/>
+        <field name="teamId" type="string" column="team_id" length="36"/>
+        <field name="templateId" type="string" column="template_id" length="36"/>
+        <field name="state" type="application_state" column="state"/>
+        <field name="version" type="string" column="version"/>
+        <field name="hasPendingSourceChange" type="boolean" column="has_pending_source_change"/>
+
+        <unique-constraints>
+            <unique-constraint columns="project_id,service_name" name="uniq_application_project_service"/>
+        </unique-constraints>
+    </entity>
+</doctrine-mapping>

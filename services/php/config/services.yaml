@@ -22,6 +22,7 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
     App\Project\Domain\Port\PodiumManifestReader: '@App\Project\Infrastructure\Manifest\NotImplementedPodiumManifestReader'
+    App\AppManager\Domain\Port\TemplateResolver: '@App\AppManager\Infrastructure\Template\NotImplementedTemplateResolver'
 
     # Puntos de entrada reales de cada BC — públicos porque los llaman
     # controllers/consumers/tests directamente, no solo otros servicios.
@@ -29,7 +30,10 @@ services:
         public: true
     App\Team\Application\ApplicationService:
         public: true
+    App\AppManager\Application\ApplicationService:
+        public: true
 
 when@test:
     services:
         App\Project\Domain\Port\PodiumManifestReader: '@App\Project\Infrastructure\Manifest\InMemoryPodiumManifestReader'
+        App\AppManager\Domain\Port\TemplateResolver: '@App\AppManager\Infrastructure\Template\InMemoryTemplateResolver'

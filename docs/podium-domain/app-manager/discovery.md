@@ -1,6 +1,6 @@
 # Discovery — App Manager
 
-**Status**: In Progress
+**Status**: Ready for Modeling
 **Last session**: 2026-09-12
 **Bounded Context**: App Manager (aplicación frontal para los usuarios; agregados propios: Application, Build [reflejo], Deployment [reflejo])
 **Contexto heredado**: ver `context-map.md` — App Manager es agnóstico de las reglas de Build y Deploy, solo refleja su estado. **Corrección (ver `project/discovery.md`)**: `Application` representa un servicio *dentro* de un `Project` (monorepo) — su identificador de negocio ya no es `appHash` sino `serviceName`, único dentro de su Project, no globalmente. El `hash` público vive en `Project`

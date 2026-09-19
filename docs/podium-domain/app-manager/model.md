@@ -114,6 +114,16 @@ stateDiagram-v2
 | `Team` | Referencia externa (vía Project) | `teamId` en `Application` es copia materializada de solo lectura, no un segundo dueño |
 | `Template` | Referencia externa | Catálogo de Build; `Application` lo referencia por `templateId` |
 
+## Decisiones de alcance (no son dominio, pero afectan el diseño)
+
+| Decisión | Razón |
+|---|---|
+| `templateId` se resuelve vía un puerto `TemplateResolver` sin adaptador real todavía | El catálogo real vive en Build (BC en Go, no implementado). Mismo patrón que `PodiumManifestReader` en Project: puerto listo, placeholder honesto que lanza si se invoca en prod |
+| `ApplicationHistoryLog` se genera en cada mutación (dominio completo y testeado) pero su persistencia real queda diferida | Requeriría mapear una colección Doctrine adicional; se prioriza cerrar la máquina de estados completa hoy. La lógica de auditoría no se pierde, solo no sobrevive a un reinicio del proceso todavía |
+| "Built" nunca queda en reposo — `markBuildSucceeded` colapsa `Building → Built → Deploying` en una sola llamada | Coherente con que el `Domain Actions` original ya describía esa transición como un solo paso; evita tener que decidir qué pasa si `ApplicationSourceChanged` llega mientras se está en `Built` (estado que, así, nunca es observable) |
+| La resolución automática de `hasPendingSourceChange` al terminar un deploy (consultar a AppSource "cuál es la última revisión") no está implementada todavía | Requiere una capacidad de query cruzada hacia AppSource (`findByProjectId`) que no existe hoy — ver la nota "no bloqueante" ya capturada en el discovery. El flag se guarda y se lee correctamente; falta el disparador automático |
+| `BuildSucceeded`/`ApplicationDeployRequested` hoy solo llevan `serviceName`, `projectId`, `version`, `image` — sin `deployEnvVars`/`databaseDeclaration` (documentados en event-catalog.md) | Build/Deploy (Go) no existen todavía, así que no hay ningún consumidor real que necesite esos campos hoy. Añadirlos ahora sería plumbing especulativo cargando valores que tampoco existen del otro lado. Pendiente al implementar Build/Deploy |
+
 ## Eventos publicados
 
 | Evento | Disparado por | Consumido por |

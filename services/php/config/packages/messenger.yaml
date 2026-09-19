@@ -6,6 +6,9 @@ when@test:
                 application_source_changed: 'in-memory://'
                 service_discovered: 'in-memory://'
                 project_registered: 'in-memory://'
+                application_registered: 'in-memory://'
+                application_build_requested: 'in-memory://'
+                application_deploy_requested: 'in-memory://'
 
 framework:
     messenger:
@@ -27,6 +30,11 @@ framework:
             project_registered:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options: { stream: 'podium.project-registered', group: 'appsource', consumer: 'appsource-1' }
+
+            # --- Publicado por App Manager, sin consumidor identificado todavía ---
+            application_registered:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.application-registered', group: 'unassigned', consumer: 'unassigned-1' }
 
             # --- Build -> App Manager ---
             build_succeeded:
@@ -80,3 +88,11 @@ framework:
             'App\Project\Domain\Event\ApplicationSourceChanged': application_source_changed
             'App\Project\Domain\Event\ServiceDiscovered': service_discovered
             'App\Project\Domain\Event\ProjectRegistered': project_registered
+            'App\AppManager\Domain\Event\ApplicationRegistered': application_registered
+            'App\AppManager\Domain\Event\ApplicationBuildRequested': application_build_requested
+            'App\AppManager\Domain\Event\ApplicationDeployRequested': application_deploy_requested
+            # Entrantes de Build/Deploy (Go) — sin clase compartible, DTO local (ver Application/Message/)
+            'App\AppManager\Application\Message\BuildSucceeded': build_succeeded
+            'App\AppManager\Application\Message\BuildFailed': build_failed_app_manager
+            'App\AppManager\Application\Message\DeploySucceeded': deploy_succeeded
+            'App\AppManager\Application\Message\DeployFailed': deploy_failed_app_manager
