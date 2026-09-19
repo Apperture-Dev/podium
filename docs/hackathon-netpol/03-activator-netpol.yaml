@@ -1,0 +1,131 @@
+# NetworkPolicy propia del namespace del activator — capas igual que
+# 01-tenant-test.yaml (default-deny + reglas explícitas), pero con el
+# egress lockdown como defensa: el activator NUNCA debe poder alcanzar
+# monitoring/keycloak/argocd/etc. porque su propia política de salida no lo
+# permite, no porque esos namespaces lo bloqueen (esa es la estrategia de
+# 02-protect-monitoring.yaml, que se basa en el label hackathon="true" — una
+# señal que no aplica a un namespace de infraestructura de confianza como
+# este). Ajusta los TODO antes de aplicar (mismos valores que
+# 01-tenant-test.yaml: nombre real del ns de nginx y las IPs de la API de
+# k3s/service-cidr).
+#
+#   kubectl apply -f 03-activator-netpol.yaml
+#   ACTIVATOR_NS=activator-system ./test.sh
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: activator-system
+  # Deliberadamente SIN label hackathon="true": ese label es lo que dispara
+  # tanto el CronJob de TTL como 02-protect-monitoring.yaml — el activator
+  # no es un tenant efímero y no debe entrar en ninguno de los dos por
+  # accidente.
+---
+# 1. Default deny: nada entra, nada sale.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 00-default-deny
+  namespace: activator-system
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# 2. Ingress solo desde el ingress controller (tramo 1: ingress-nginx -> activator).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 10-allow-ingress-controller
+  namespace: activator-system
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx   # TODO: nombre real del ns de nginx
+---
+# 3. Egress a DNS (CoreDNS en kube-system).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 20-allow-dns
+  namespace: activator-system
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+# 4. Egress al API server — a diferencia del tenant (que lo tiene bloqueado),
+#    el activator lo necesita de verdad: informers/watches de
+#    Ingress/Deployment y los patches de deployments/scale e Ingress.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 30-allow-apiserver
+  namespace: activator-system
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.43.0.1/32   # TODO: IP real del Service "kubernetes" (service-cidr de k3s)
+      ports:
+        - port: 443
+          protocol: TCP
+---
+# 5. Egress a cualquier namespace de tenant (tramo 2: activator -> pod del
+#    tenant, el proxy inverso) — sin puerto fijo porque cada tenant expone
+#    el suyo propio; si hace falta acotar más, sustituir por los puertos
+#    reales que use el chart podium-app.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: 40-allow-egress-tenants
+  namespace: activator-system
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              hackathon: "true"
+---
+# Sin regla de egress a Internet (0.0.0.0/0:443): el activator reporta
+# incidencias vía Kubernetes Events (ver internal/wake, alerta de arranque
+# >60s), no por un webhook externo — si eso cambia, añadir aquí la regla
+# equivalente a 30-allow-egress-https de 01-tenant-test.yaml, no abrir
+# egress sin restricción.
+
+# Pod objetivo para las pruebas de ingress (algo que escuche en :8080 dentro del namespace).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: target
+  namespace: activator-system
+  labels:
+    app: target
+spec:
+  containers:
+    - name: nginx
+      image: nginxinc/nginx-unprivileged:alpine
+      ports:
+        - containerPort: 8080
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsNonRoot: true

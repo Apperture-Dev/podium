@@ -23,7 +23,14 @@ spec:
   podSelector: {}
   policyTypes: [Ingress, Egress]
 ---
-# 2. Ingress solo desde el ingress controller.
+# 2. Ingress desde el ingress controller — y, condicional, desde el
+#    namespace del activator (ver docs/hackathon-plan/plan-hackbarna-2026.md
+#    § "activator propio en Go" y 03-activator-netpol.yaml): cuando el
+#    activator está en el camino, el segundo salto (activator -> pod del
+#    tenant) llega con la IP de origen del namespace del activator, no de
+#    ingress-nginx. Se añade como entrada extra, no como sustituto: cuando
+#    el kill switch está en "false" el tráfico sigue llegando directo desde
+#    ingress-nginx, y ambos caminos tienen que seguir funcionando a la vez.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -37,6 +44,9 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: ingress-nginx   # TODO: nombre real del ns de nginx
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: activator-system
 ---
 # 3. Egress a DNS (CoreDNS en kube-system), UDP y TCP.
 apiVersion: networking.k8s.io/v1
