@@ -19,6 +19,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -84,7 +87,6 @@ export function AppSidebar() {
     { label: "Proyectos", icon: FolderSimple, href: "/" as string | null },
     { label: "Despliegues", icon: Rocket, href: null },
     { label: "Equipo", icon: UsersThree, href: null },
-    { label: "Secrets", icon: Key, href: secretsHref },
     { label: "Ajustes", icon: Gear, href: null },
   ];
 
@@ -122,6 +124,19 @@ export function AppSidebar() {
                   <item.icon className="size-[18px]" />
                   <span>{item.label}</span>
                 </SidebarMenuButton>
+                {item.label === "Proyectos" && secretsHref && (
+                  <SidebarMenuSub>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuSubButton
+                        isActive={pathname === secretsHref}
+                        render={<Link href={secretsHref} />}
+                      >
+                        <Key className="size-4" />
+                        <span>Secrets</span>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  </SidebarMenuSub>
+                )}
               </SidebarMenuItem>
             );
           })}
