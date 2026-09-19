@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Project;
 
+use App\AppSource\Domain\Event\SourceChanged;
 use App\Project\Application\EventHandler\SourceChangedHandler;
-use App\Project\Application\Message\SourceChanged;
 use App\Project\Domain\Event\ApplicationSourceChanged;
 use App\Project\Domain\Event\ServiceDiscovered;
 use App\Project\Domain\Port\ProjectRepository;

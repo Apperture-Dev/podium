@@ -53,6 +53,7 @@
 | `DeploySucceeded` | Deploy | App Manager (`markDeploySucceeded`) | ✅ Confirmed |
 | *(error en tiempo de ejecución, ej. 500)* | Logs del pod → Alloy → Loki → agente clasificador de gravedad | Remediation, App Manager | ✅ Confirmed — origen resuelto. ⚠️ Nota: si el "agente clasificador de gravedad" tiene reglas propias de qué cuenta como grave, podría ser su propio BC (Observability); si es un filtro técnico sin reglas de negocio, es solo un adaptador hacia Remediation. Sin resolver, no bloqueante |
 | `TeamDeleted` | Team | Project (debería disparar borrado en cascada de sus Projects) | 🕓 Deferred — nombre y disparador confirmados, implementación fuera del MVP de hoy — ver `team/discovery.md` |
+| `ProjectRegistered` | **Project** (`registerProject`) | AppSource (dispara su propio `registerAppSource`) | ✅ Confirmed — reemplaza la idea anterior de "Project y AppSource se crean a la vez"; AppSource nace de forma reactiva, no en el mismo paso — ver `project/discovery.md` y `appsource/discovery.md` |
 
 ## Captured Invariants
 
@@ -102,4 +103,7 @@
 - Descartado un aggregate `Membership` propio: sin identidad ni reglas independientes, es solo la relación many-to-many `Team` ↔ `UserId`. Rol de membresía (editor/viewer) y `slug` legible/único quedan identificados pero diferidos fuera del MVP de hoy — `TeamId` sirve como identificador público mientras tanto.
 - Nuevo evento `TeamDeleted` identificado (debería disparar borrado en cascada de los `Project` del equipo) — nombrado y confirmado, implementación diferida.
 - Pendiente, no bloqueante: `project/model.md` sigue modelando `Project.teamId` como `string` crudo, no como `TeamId` — revisar en una pasada futura sobre el modelo de Project.
+
+### 2026-09-19 (AppSource)
+- Corrección del arquitecto sobre cómo nace `AppSource`: no se crea "a la vez" que `Project` en el mismo paso — reacciona de forma asíncrona al evento `ProjectRegistered` que `Project` publica al registrarse (`registerProject`). Nuevo evento cruzado `ProjectRegistered` (`projectId`, `repositoryUrl`, `teamId`), consumido por AppSource, que dispara su propio `registerAppSource`. `project/discovery.md` y `project/model.md` actualizados para reflejarlo — ya no queda ninguna creación conjunta ni llamada directa entre estos dos BCs.
 

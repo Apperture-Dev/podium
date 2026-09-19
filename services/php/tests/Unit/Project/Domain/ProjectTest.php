@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Project\Domain;
 
 use App\Project\Domain\Event\ApplicationSourceChanged;
+use App\Project\Domain\Event\ProjectRegistered;
 use App\Project\Domain\Event\ServiceDiscovered;
 use App\Project\Domain\Project;
 use App\Project\Domain\ValueObject\DeclaredService;
@@ -21,8 +22,22 @@ final class ProjectTest extends UnitTestCase
         parent::setUp();
 
         $this->project = Project::register('https://github.com/team/repo', 'team-1');
+        $this->project->releaseEvents(); // estos tests son sobre processSourceChanged, no sobre el registro
         $this->backend = new DeclaredService('backend', 'php', 'symfony');
         $this->frontend = new DeclaredService('frontend', 'typescript', 'react');
+    }
+
+    public function testRegisterProducesProjectRegistered(): void
+    {
+        $project = Project::register('https://github.com/team/repo', 'team-1');
+
+        $events = $project->releaseEvents();
+
+        self::assertCount(1, $events);
+        self::assertInstanceOf(ProjectRegistered::class, $events[0]);
+        self::assertSame($project->id()->toString(), $events[0]->projectId);
+        self::assertSame('https://github.com/team/repo', $events[0]->repositoryUrl);
+        self::assertSame('team-1', $events[0]->teamId);
     }
 
     public function testKnownServiceProducesApplicationSourceChanged(): void

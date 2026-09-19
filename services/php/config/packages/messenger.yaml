@@ -5,6 +5,7 @@ when@test:
                 source_changed: 'in-memory://'
                 application_source_changed: 'in-memory://'
                 service_discovered: 'in-memory://'
+                project_registered: 'in-memory://'
 
 framework:
     messenger:
@@ -23,6 +24,9 @@ framework:
             service_discovered:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options: { stream: 'podium.service-discovered', group: 'app-manager', consumer: 'app-manager-1' }
+            project_registered:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.project-registered', group: 'appsource', consumer: 'appsource-1' }
 
             # --- Build -> App Manager ---
             build_succeeded:
@@ -72,6 +76,7 @@ framework:
         # No hay command bus ni query bus: las operaciones dentro de un BC se
         # llaman directo al ApplicationService, sin esa capa de indirección.
         routing:
-            'App\Project\Application\Message\SourceChanged': source_changed
+            'App\AppSource\Domain\Event\SourceChanged': source_changed
             'App\Project\Domain\Event\ApplicationSourceChanged': application_source_changed
             'App\Project\Domain\Event\ServiceDiscovered': service_discovered
+            'App\Project\Domain\Event\ProjectRegistered': project_registered

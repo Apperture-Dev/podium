@@ -33,6 +33,7 @@
 |---|---|---|---|
 | `ApplicationSourceChanged` *(nombre propuesto)* | Project procesa `SourceChanged` y reparte por cada `serviceName` ya conocido | `serviceName`, `projectId`, `revision`, `repositoryUrl`, `provider` | 🆕 Proposed — consumido por App Manager (reemplaza el consumo directo de `SourceChanged` de AppSource) |
 | `ServiceDiscovered` *(nombre propuesto)* | Project encuentra un `serviceName` en el yaml que no conocía todavía | `serviceName`, `projectId`, `lang`, `framework` | 🆕 Proposed — dispara el registro de una `Application` nueva. Mecanismo exacto sin resolver |
+| `ProjectRegistered` *(nombre propuesto, mismo patrón que `ApplicationRegistered` en App Manager)* | Se registra un `Project` nuevo (`registerProject`) | `projectId`, `repositoryUrl`, `teamId` | ✅ Confirmed — consumido por AppSource, que reacciona creando su propio aggregate. Reemplaza la idea anterior de "Project y AppSource se crean a la vez" en el mismo paso: la creación de AppSource es asíncrona, vía evento, no una llamada directa |
 
 ## Open Ambiguities
 
@@ -41,7 +42,8 @@
 | ~~¿`Team` es dueño de `Project`...?~~ | Team / Project / Application | ✅ Resuelto — `Team` es dueño de `Project`. `Application` mantiene un `teamId` propio, pero **materializado** (copia de solo lectura de `Project.teamId`, fijada al crear la Application) — para filtrar "todas las apps de un equipo" sin tener que pasar por `Project` cada vez. Un solo dueño de la verdad, una copia de lectura |
 | ~~¿Cómo se traduce exactamente `ServiceDiscovered` en una `Application` nueva registrada...?~~ | Project / App Manager | ✅ Resuelto — mismo patrón evento-consume-acción que el resto del modelo: App Manager consume `ServiceDiscovered` y dispara `registerApplication`, igual que consume `BuildSucceeded` para `markBuildSucceeded` |
 | ~~¿`Project` guarda la lista de `serviceName` conocidos él mismo, o eso vive como consulta a App Manager?~~ | Project / App Manager | ✅ Resuelto — Project la guarda él mismo. Ninguna consulta directa entre BCs (regla ya establecida) — Project no puede preguntarle a App Manager qué existe |
-| ~~¿Cómo nace un Project en primer lugar?~~ | Project / AppSource | ✅ Resuelto — dar una `repositoryUrl` a Podium crea `Project` y `AppSource` a la vez. Es la puerta de entrada real del sistema, no depende de ningún evento de dominio previo |
+| ~~¿Cómo nace un Project en primer lugar?~~ | Project / AppSource | ✅ Resuelto — dar una `repositoryUrl` a Podium crea `Project`. Es la puerta de entrada real del sistema, no depende de ningún evento de dominio previo |
+| ~~¿Cómo nace exactamente `AppSource` — en el mismo paso que `Project`, o por separado?~~ | Project / AppSource | ✅ Resuelto (corrección 2026-09-19) — por separado, de forma reactiva: `registerProject` publica `ProjectRegistered`; AppSource consume ese evento y crea su propio aggregate. Nunca una llamada directa ni la misma transacción — coherente con la regla general de "comunicación entre BCs siempre por evento publicado" |
 | ~~¿El reparto de ApplicationSourceChanged por servicio filtra por la carpeta src...?~~ | Project / AppSource | ✅ Resuelto — MVP simple: Project reparte `ApplicationSourceChanged` a **todos** los servicios conocidos ante cualquier cambio, sin filtrar por carpeta. El desperdicio de reconstruir algo sin cambios reales se mitiga más abajo, en Build, no aquí — ver `ImageNotChanged` en `build/discovery.md` (deseable, diferido) |
 
 ## Session Log
@@ -54,3 +56,6 @@
 - Resueltas las dos ambigüedades restantes, aplicando reglas ya fijadas en el resto del modelo: `ServiceDiscovered` lo consume App Manager y dispara `registerApplication` (mismo patrón evento→acción de siempre); Project guarda su propia lista de `serviceName` conocidos (ninguna consulta directa entre BCs). Nueva pregunta: cómo nace un `Project` la primera vez que un equipo da una `repositoryUrl`.
 - Resuelto: dar una `repositoryUrl` crea `Project` y `AppSource` a la vez — puerta de entrada real del sistema. Nueva pregunta, reabre una decisión ya diferida en AppSource: si el reparto de `ApplicationSourceChanged` por servicio necesita filtrar por carpeta `src` (monorepo) ya en el MVP, o se queda simple (dispara para todos los servicios conocidos).
 - Resuelto: MVP simple, sin filtrar por carpeta — Project reparte a todos los servicios conocidos. El desperdicio de reconstruir sin cambios reales se mitiga en Build vía caché de buildah (`ImageNotChanged`, deseable diferido) — no aquí. Project queda sin ambigüedades bloqueantes.
+
+### 2026-09-19
+- Corrección del arquitecto: "Project y AppSource se crean a la vez" no era literal — `AppSource` nace de forma reactiva, consumiendo un evento que `Project` publica al registrarse. Nuevo evento `ProjectRegistered` (`registerProject`), consumido por AppSource. Ya no hay ninguna llamada directa ni creación conjunta en el mismo paso entre estos dos BCs.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Project\Domain;
 
 use App\Project\Domain\Event\ApplicationSourceChanged;
+use App\Project\Domain\Event\ProjectRegistered;
 use App\Project\Domain\Event\ServiceDiscovered;
 use App\Project\Domain\ValueObject\DeclaredService;
 use App\Project\Domain\ValueObject\Hash;
@@ -28,7 +29,10 @@ final class Project
 
     public static function register(string $repositoryUrl, string $teamId): self
     {
-        return new self(ProjectId::generate(), Hash::generate(), $teamId, $repositoryUrl);
+        $project = new self(ProjectId::generate(), Hash::generate(), $teamId, $repositoryUrl);
+        $project->record(new ProjectRegistered($project->id->toString(), $repositoryUrl, $teamId));
+
+        return $project;
     }
 
     /** @param list<string> $knownServiceNames */
@@ -113,7 +117,7 @@ final class Project
     }
 
     /** @return list<object> */
-    private function releaseEvents(): array
+    public function releaseEvents(): array
     {
         $events = $this->recordedEvents;
         $this->recordedEvents = [];

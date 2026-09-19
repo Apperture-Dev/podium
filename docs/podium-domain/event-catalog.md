@@ -22,6 +22,7 @@ Todo mensaje publicado en Redis (vía Symfony Messenger en PHP, `go-redis` en Go
 
 - `type` = nombre del stream Redis (ver tabla abajo), formato `podium.<kebab-case>`.
 - `correlationId`: no está confirmado en ningún `model.md` — se agrega aquí como convención de infraestructura para poder trazar `SourceChanged → ... → DeploySucceeded` en logs/observabilidad. No es parte del lenguaje ubicuo de ningún BC (es un concern de plataforma, no de dominio) — cada BC lo reenvía sin interpretarlo.
+- **PHP↔PHP (mismo monorepo)**: el BC consumidor escucha directamente la clase de evento de dominio del BC productor (ej. `App\AppSource\Domain\Event\SourceChanged`), no una copia local traducida — Symfony Messenger enruta por clase exacta del mensaje decodificado, así que una clase local homónima nunca sería invocada con el mensaje real llegando por Redis (solo funcionaría en un test que invoca el handler a mano, sin pasar por serialización — así se descubrió el problema). La traducción de payload a objeto propio (`Application/Message/...`) solo tiene sentido en el borde Go↔PHP, donde sí hay dos lenguajes distintos sin clases compartibles.
 
 ---
 
@@ -50,6 +51,12 @@ Todo mensaje publicado en Redis (vía Symfony Messenger en PHP, `go-redis` en Go
 - **Consume**: App Manager (`registerApplication`)
 - **Stream**: `podium.service-discovered`
 - **Payload**: `serviceName`, `projectId`, `lang`, `framework`
+
+### `ProjectRegistered`
+- **Emite**: Project (`registerProject`)
+- **Consume**: AppSource (`registerAppSource`) — reemplaza la idea anterior de "Project y AppSource se crean a la vez"
+- **Stream**: `podium.project-registered`
+- **Payload**: `projectId`, `repositoryUrl`, `teamId`
 
 ### `ApplicationRegistered`
 - **Emite**: App Manager (`Application` entra en `Created`)

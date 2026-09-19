@@ -32,10 +32,10 @@ classDiagram
     }
 
     Project ..> Team : referencia por id (teamId)
-    Project "1" --> "1" AppSource : se crean juntos al registrar
+    Project ..> AppSource : emits ProjectRegistered — AppSource reacciona creando el suyo, sin llamada directa
     Project "1" --> "*" Application : aglutina, por serviceName conocido
 
-    note for Project "hash vive aquí, nunca en Application.\nCreación: dar una repositoryUrl crea\nProject y AppSource a la vez — puerta\nde entrada real del sistema.\nMantiene su propia lista de serviceName\nconocidos, sin consulta directa a App Manager."
+    note for Project "hash vive aquí, nunca en Application.\nCreación: dar una repositoryUrl crea Project —\npuerta de entrada real del sistema.\nAppSource nace por separado, reactivo\na ProjectRegistered (nunca en el mismo paso).\nMantiene su propia lista de serviceName\nconocidos, sin consulta directa a App Manager."
 ```
 
 ## Resumen de responsabilidades
@@ -48,7 +48,7 @@ classDiagram
 
 | Action | Comportamiento | Produce |
 |---|---|---|
-| `registerProject` | El equipo da a Podium una `repositoryUrl` por primera vez → crea `Project` (con `hash`, `teamId`) y `AppSource` a la vez | `Project` + `AppSource` creados |
+| `registerProject` | El equipo da a Podium una `repositoryUrl` por primera vez → crea `Project` (con `hash`, `teamId`) | `Project` creado, publica `ProjectRegistered` |
 | `processSourceChanged` *(consume evento `SourceChanged`)* | Lee `podium.yaml` en la revisión recibida, recorre los servicios declarados: si `serviceName` ya está en `knownServiceNames` → publica `ApplicationSourceChanged`; si es nuevo → lo añade a la lista y publica `ServiceDiscovered` | `ApplicationSourceChanged` y/o `ServiceDiscovered`, uno por servicio afectado |
 
 ## Decisiones de alcance (no son dominio, pero afectan el diseño)
@@ -64,6 +64,7 @@ classDiagram
 |---|---|---|---|
 | `ApplicationSourceChanged` | `processSourceChanged`, servicio ya conocido | `serviceName`, `projectId`, `revision`, `repositoryUrl`, `provider` | App Manager |
 | `ServiceDiscovered` | `processSourceChanged`, servicio nuevo | `serviceName`, `projectId`, `lang`, `framework` | App Manager (dispara `registerApplication`) |
+| `ProjectRegistered` | `registerProject` | `projectId`, `repositoryUrl`, `teamId` | AppSource (dispara su propio `registerAppSource`) |
 
 ## Eventos consumidos
 

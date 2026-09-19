@@ -32,8 +32,13 @@ final readonly class ApplicationService
         $this->teams->get(TeamId::fromString($teamId));
 
         $project = Project::register($repositoryUrl, $teamId);
+        $events = $project->releaseEvents();
 
         $this->projects->save($project);
+
+        foreach ($events as $event) {
+            $this->eventBus->dispatch($event);
+        }
 
         return $project->id()->toString();
     }
