@@ -1,0 +1,41 @@
+# podium.yaml — ejemplo de referencia
+#
+# Cada clave de primer nivel es un servicio (serviceName), único dentro de
+# este Project. Un mismo repo puede declarar varios servicios (monorepo) —
+# Podium los descubre solo y despliega cada uno como su propia Application.
+
+app:
+  src: backend
+  lang: nodejs
+  framework: nestjs
+  environment:
+    NODE_ENV: production
+    API_KEY: ${TELEGRAM_SECRET}     # Secret ya subido a Podium. Sin valores
+                                     # por defecto — la clave tiene que existir.
+  database:
+    enable: true                    # Si no se declara este bloque, es false
+                                     # por defecto: no se monta BBDD.
+    # Cualquiera de las dos formas de abajo vale. Si se rellena URL, esa
+    # gana — da igual lo que haya en los campos sueltos.
+    URL: ${DB_URL}
+    # — o, en su lugar —
+    database: ${APP_DATABASE}
+    user: ${APP_DATABASE_USER}
+    password: ${APP_DATABASE_PASSWORD}
+    host: ${APP_DATABASE_HOST}
+    port: ${APP_DATABASE_PORT}
+  # Sin campo de "comando": cada plantilla (Template) asume su propia
+  # convención (Node/NestJS → npm run build && npm start). Si el repo no
+  # sigue la convención esperada por su lenguaje/framework, el build falla
+  # con un mensaje de error claro — no hay nada que configurar aquí.
+
+frontend:
+  src: frontend
+  lang: nodejs
+  framework: react
+  environment:
+    NODE_ENV: production
+    BACKEND_URL: ${app.url}         # Referencia a la URL pública de otro
+                                     # servicio de este mismo Project.
+  # database.enable es false por defecto — no hace falta declarar el
+  # bloque entero si el servicio no necesita base de datos.
