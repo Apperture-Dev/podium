@@ -2,8 +2,6 @@ FROM docker.io/dunglas/frankenphp:1.11-php8.4-trixie AS base
 
 WORKDIR /app
 
-VOLUME /app/var/
-
 # add additional extensions here:
 RUN install-php-extensions \
     @composer \
@@ -17,7 +15,33 @@ RUN install-php-extensions \
 RUN apt update && apt install -y --no-install-recommends \
     procps
 
-# Stage para instalar dependencias de PHP y obtener vendor
+# --- Dev: todo el código llega por bind mount (compose.yaml), sin COPY ni
+# vendor/ propios en la imagen — se instala una vez con `composer install`
+# dentro del contenedor y queda en el host. Sin worker mode (Caddyfile por
+# defecto de la imagen base, no el custom de prod): cada request relee el
+# código, sin reiniciar nada al cambiar una clase. Corre como usuario no-root
+# con el UID/GID del host (para que los archivos que el contenedor escriba —
+# var/cache, vendor/ — no queden root:root en el bind mount), igual que
+# discovery-room.
+FROM base AS dev
+
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN apt-get update && apt-get install --no-install-recommends -y libcap2-bin git unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid ${GROUP_ID} appuser \
+    && useradd --uid ${USER_ID} --gid appuser --shell /bin/bash --create-home appuser \
+    && setcap 'cap_net_bind_service=+ep' /usr/local/bin/frankenphp \
+    && mkdir -p /data/caddy /config/caddy \
+    && chown -R appuser:appuser /data /config /app
+
+USER appuser
+
+ENV SERVER_NAME=:80
+
+# Stage para instalar dependencias de PHP y obtener vendor (solo prod — dev
+# instala vendor/ en caliente dentro del contenedor, ver arriba)
 FROM base AS composer-deps
 
 COPY ./composer.json /app/composer.json
@@ -28,6 +52,8 @@ RUN set -eux; \
 	composer install --no-cache --prefer-dist --no-dev --no-autoloader --no-scripts --no-progress
 
 FROM base AS prod
+
+VOLUME /app/var/
 
 # Copy vendor from composer-deps stage
 COPY --from=composer-deps /app/vendor /app/vendor

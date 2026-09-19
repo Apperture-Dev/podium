@@ -1,13 +1,29 @@
 services:
+  # Stage "dev" (docker/franken-php/Dockerfile): bind mount de todo el
+  # código, sin worker mode, corre como usuario no-root con el UID/GID del
+  # host — mismo patrón que discovery-room. El stage "prod" (worker mode,
+  # código copiado dentro de la imagen, sin bind mount) sigue existiendo
+  # para cuando haga falta construir la imagen real de despliegue; aquí no
+  # se usa por defecto.
+  #
+  # Primer arranque: `docker compose exec frankenphp composer install`
+  # (vendor/ no viene en la imagen dev, se instala en caliente y queda en
+  # el host gracias al bind mount).
+  #
+  # Sin MESSENGER_TRANSPORT_DSN/DATABASE_URL aquí: con el código montado,
+  # el propio Dotenv de Symfony ya los lee de .env/.env.local — duplicarlos
+  # en `environment:` es una segunda fuente de verdad que puede desincronizarse.
   frankenphp:
     build:
       context: .
       dockerfile: ./docker/franken-php/Dockerfile
-      target: prod
+      target: dev
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     restart: unless-stopped
-    environment:
-      FRANKENPHP_CONFIG: "worker ./public/index.php"
-      MESSENGER_TRANSPORT_DSN: redis://redis:6379
+    volumes:
+      - ./:/app
     depends_on:
       redis:
         condition: service_started
@@ -15,7 +31,6 @@ services:
         condition: service_healthy
     ports:
       - "${PODIUM_HTTP_PORT:-8090}:80"
-      - "${PODIUM_METRICS_PORT:-9091}:9090"
 
   redis:
     image: redis:alpine
