@@ -193,3 +193,41 @@ build-activator:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - services/activator/**/*
+
+test-build-launcher:
+  stage: test
+  image: golang:1.23-bookworm
+  script:
+    - cd services/build-launcher
+    - go vet ./...
+    - go test ./... -race
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - services/build-launcher/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/build-launcher/**/*
+
+build-build-launcher:
+  extends: .buildah-base
+  stage: build
+  needs: ["test-build-launcher"]
+  script:
+    - |
+      buildah bud --isolation=chroot --layers \
+        --cache-from "$CI_REGISTRY_IMAGE/build-launcher" \
+        --target prod \
+        -t "$CI_REGISTRY_IMAGE/build-launcher:$CI_COMMIT_SHORT_SHA" \
+        -t "$CI_REGISTRY_IMAGE/build-launcher:latest" \
+        -f services/build-launcher/Dockerfile services/build-launcher
+    - buildah push "$CI_REGISTRY_IMAGE/build-launcher:latest"
+    - buildah push --digestfile /tmp/image-digest.txt "$CI_REGISTRY_IMAGE/build-launcher:$CI_COMMIT_SHORT_SHA"
+    - echo "IMAGE_DIGEST=$(cat /tmp/image-digest.txt)" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/build-launcher/**/*
