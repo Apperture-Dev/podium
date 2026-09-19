@@ -9,7 +9,7 @@ import {
   UsersThree,
   Key,
   Gear,
-  ArrowLineLeft,
+  SignOut,
 } from "@phosphor-icons/react";
 import {
   Sidebar,
@@ -19,10 +19,16 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getCurrentUser, type CurrentUser } from "@/lib/api/me";
+import { logout } from "@/app/logout/actions";
 
 function displayNameOf(user: CurrentUser | null): string {
   if (!user) return "";
@@ -84,18 +90,18 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="flex-row items-center justify-between px-4 py-4">
-        <Link href="/" className="flex items-center gap-2 font-heading font-semibold">
-          <span className="flex h-7 w-7 items-center justify-center bg-primary text-primary-foreground text-sm">
-            H
-          </span>
-          <span className="group-data-[collapsible=icon]:hidden">
-            Hostium
-          </span>
+      <SidebarHeader className="px-4 py-4 group-data-[collapsible=icon]:px-0">
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-heading font-semibold group-data-[collapsible=icon]:justify-center"
+        >
+          <img src="/logo-mark.svg" alt="" className="h-7 w-7 shrink-0" />
+          <img
+            src="/logo-wordmark.svg"
+            alt="Hostium"
+            className="h-[22.6px] w-auto group-data-[collapsible=icon]:hidden"
+          />
         </Link>
-        <SidebarTrigger>
-          <ArrowLineLeft className="size-4" />
-        </SidebarTrigger>
       </SidebarHeader>
       <SidebarContent className="px-2">
         <SidebarMenu>
@@ -109,6 +115,7 @@ export function AppSidebar() {
                   disabled={isDisabled}
                   aria-disabled={isDisabled}
                   title={isDisabled ? `${item.label} — próximamente` : item.label}
+                  tooltip={isDisabled ? `${item.label} — próximamente` : item.label}
                   className={isDisabled ? "opacity-50 cursor-not-allowed" : undefined}
                   render={isDisabled ? undefined : <Link href={item.href!} />}
                 >
@@ -120,18 +127,32 @@ export function AppSidebar() {
           })}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="px-4 py-4">
-        <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-          <Avatar className="size-9">
-            <AvatarFallback>{initialsOf(displayName)}</AvatarFallback>
-          </Avatar>
-          <div className="text-sm leading-tight">
-            <div className="font-medium">{displayName || "…"}</div>
-            <div className="text-muted-foreground text-xs">
-              {user?.preferredUsername ?? ""}
-            </div>
-          </div>
-        </div>
+      <SidebarFooter className="px-2 py-4">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={<SidebarMenuButton className="h-auto py-2" />}
+              >
+                <Avatar className="size-9">
+                  <AvatarFallback>{initialsOf(displayName)}</AvatarFallback>
+                </Avatar>
+                <div className="text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                  <div className="font-medium">{displayName || "…"}</div>
+                  <div className="text-muted-foreground text-xs">
+                    {user?.preferredUsername ?? ""}
+                  </div>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-56">
+                <DropdownMenuItem onClick={() => logout()}>
+                  <SignOut className="size-4" />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

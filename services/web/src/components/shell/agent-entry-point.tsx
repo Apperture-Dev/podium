@@ -17,6 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
  * No functional agent behavior in this change (see design.md Non-Goals):
@@ -67,11 +68,24 @@ export function AgentEntryPoint() {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <Sheet>
-        <SheetTrigger render={<Button size="icon" aria-label="Abrir el asistente" />}>
-          <Sparkle weight="fill" className="size-4" />
-        </SheetTrigger>
-        <SheetContent side="right" className="flex flex-col gap-0 p-0">
+      <Sheet modal={false}>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <SheetTrigger
+                render={<Button variant="secondary" size="icon" aria-label="Abrir el asistente" />}
+              />
+            }
+          >
+            <Sparkle weight="fill" className="size-4" />
+          </TooltipTrigger>
+          <TooltipContent>Agente</TooltipContent>
+        </Tooltip>
+        <SheetContent
+          side="right"
+          showOverlay={false}
+          className="flex flex-col gap-0 p-0"
+        >
           <SheetHeader className="border-b py-3">
             <SheetTitle>Nuevo chat</SheetTitle>
           </SheetHeader>

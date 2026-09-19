@@ -2,16 +2,16 @@
 
 ## Purpose
 
-Lets a team see the projects it owns at a glance, register a new project or team against the real API, and inspect a single project's build/deploy status and history.
+Lets a team see the projects it owns at a glance, register a new project or team against the real API, and inspect a single project's real services and their build/deploy state.
 
 ## ADDED Requirements
 
 ### Requirement: View project list
-The system SHALL display, for the active team, a card for each of that team's registered projects showing its name, description, domain, language/framework, and last-updated time.
+The system SHALL display, for the active team, a card for each of that team's registered projects showing its name, its URL (derived from its hash), and its repository URL.
 
 #### Scenario: Team has active projects
 - **WHEN** a user with an active team selected opens the Proyectos page
-- **THEN** the system displays a card for each of that team's projects with its name, domain, and last-updated time
+- **THEN** the system displays a card for each of that team's projects with its name, URL, and repository URL
 
 ### Requirement: Switch active team
 The system SHALL let a user switch between the teams they belong to via a team switcher, and the project list SHALL reflect the newly selected team.
@@ -43,11 +43,15 @@ The system SHALL let a user register a new team by submitting a team name, and S
 - **THEN** the system registers the team against the backend with the submitted name and the current user as creator, and the new team becomes the active team
 
 ### Requirement: View project detail
-The system SHALL show, for a single project, its current deploy status, version, frameworks, last-updated time, and a timeline of past deployments including each deployment's domain, origin branch, commit, author, and relative time.
+The system SHALL show, for a single project, its name, repository URL, hash-derived URL, and the list of its `Application`s (services), each with its service name, build/deploy state, version, and whether it has a pending source change.
 
 #### Scenario: Viewing an existing project
 - **WHEN** the user navigates to a project's detail page
-- **THEN** the system displays the project's status, version, frameworks, and its deployment timeline
+- **THEN** the system displays the project's identity fields and a card per service with its state, version, and pending-change indicator
+
+#### Scenario: Project has no services yet
+- **WHEN** the user navigates to a project's detail page and it has no `Application`s
+- **THEN** the system indicates there are no services yet, rather than showing an empty grid
 
 ### Requirement: Sidebar navigation
 The system SHALL present a persistent sidebar with entries for Proyectos, Despliegues, Equipo, Secrets, and Ajustes. Only Proyectos and Secrets SHALL be interactive; the others SHALL indicate they are not yet available.

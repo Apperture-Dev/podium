@@ -2,26 +2,26 @@
 
 ## Context
 
-See `proposal.md` — `Why` and `What Changes`. Relevant constraints already established:
+See `proposal.md` — `Why` and `What Changes`. Relevant constraints:
 
-- Backend (`services/php`) exposes exactly two write endpoints and nothing to read: `POST /api/teams` (`{ name, creatorUserId }`), `POST /api/projects` (`{ repositoryUrl, teamId }`, both validated `NotBlank`, `repositoryUrl` validated as a URL). Neither endpoint returns more than `{ id }`. There is no `name` field on project registration.
-- No CORS is configured on the Symfony side today; enabling it is a separate change. Real calls from this app will 404/fail with a CORS error in a browser until that lands — accepted for this change.
-- `AppManager`'s `Application` + `ApplicationHistoryLog` aggregates exist in the domain but have no HTTP read surface.
+- `services/php` now exposes: `GET/POST /api/teams`, `GET /api/teams/{teamId}/projects`, `POST /api/projects` (`{ name, repositoryUrl, teamId }`), `GET /api/teams/{teamId}/projects/{projectId}`, `GET /api/teams/{teamId}/projects/{projectId}/applications[/{serviceName}]`. `Project` has `{ id, name, hash, repositoryUrl, teamId }` — no domain/URL field; the real URL convention is `{hash}.apperture.dev` per the hackathon plan. `Application` has `{ serviceName, projectId, teamId, state, version, hasPendingSourceChange }` — no deployment timeline, commit, branch, author, or timestamp of any kind.
+- Every `/api/*` route requires a JWT (Keycloak, realm `podium`, client `podium-api`). There's a seeded dev user (`testuser`/`testuser`) documented in the root README, used purely to unblock frontend development — this product has no accounts/login concept (hackathon plan, explicit).
+- CORS is now configured (`nelmio/cors-bundle`, applied to `^/api`), added as part of this change once real data made it a hard blocker for testing anything in a browser.
 - Secrets have no backend at all yet, but their intended design is documented in `docs/podium-config/podium-yaml-guide.md`: real values live as native Kubernetes Secrets per project namespace; `podium.yaml` only ever holds a `${SECRET_NAME}` reference.
 - Visual tokens (colors, radius, type, icons) are fixed by `docs/PRD/01_PRD_visual.md`.
-- Wireframes (Figma file `V32R1h3rGTE8kATd33DIXm`) fix the information architecture for Proyectos, Nuevo proyecto, Detalle de proyecto, and Secrets. No wireframe exists for Despliegues, Equipo, Ajustes, or team registration.
+- Wireframes (Figma file `V32R1h3rGTE8kATd33DIXm`) fix the information architecture for Proyectos, Nuevo proyecto, Detalle de proyecto, and Secrets. No wireframe exists for Despliegues, Equipo, Ajustes, or team registration. The wireframes' project-detail "Despliegue de producción" deployment-history cards don't correspond to anything the real API returns — that section became a "Servicios" list of `Application`s instead (see Decisions).
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Ship a Next.js app whose real screens (project + team registration) work end-to-end against the actual backend contract, and whose mock screens (project list, project detail, secrets) are visually and structurally complete against fixture data, ready to swap for real data later.
-- Keep the mock/real boundary legible in the code: a reviewer should be able to tell, per screen, whether data comes from a fetch or a fixture without reading implementation details.
+- Ship a Next.js app whose project console (teams, projects, project detail) works end-to-end against the real backend, with an honest UI — showing exactly the fields the API returns, not fabricating what the wireframe implied but the backend doesn't have.
+- Keep Secrets' mock/real boundary legible: it's the one screen still on fixtures, and that should be obvious from its imports alone.
 
 **Non-Goals:**
-- No CORS configuration on the backend (separate change).
-- No authentication/login flow — matches the hackathon plan's explicit "no accounts" decision; "María Rey / Admin" in the wireframes' sidebar footer is treated as static placeholder chrome, not a real session.
-- No functional agent behavior — the ✦ entry point renders an Assistant UI `AssistantModal` shell with a static welcome state; no LLM call, tool contract, or conversation persistence.
-- No new backend endpoints (Secrets, project/deploy read APIs) — those are out of scope for a frontend-only change.
+- No real login flow — the dev auth bridge (see Decisions) authenticates a fixed seeded user; there's no session, no login UI, no refresh-token handling, and no accounts concept in the product itself.
+- No functional agent behavior — the ✦ entry point renders a static welcome state; no LLM call, tool contract, or conversation persistence.
+- No new backend endpoints beyond CORS — Secrets still has none, and this change doesn't add one.
+- No deployment-history UI — the real `Application` doesn't carry commit/branch/author/timestamp data, so the project detail page doesn't show any, rather than inventing it.
 
 ## Decisions
 
@@ -29,28 +29,31 @@ See `proposal.md` — `Why` and `What Changes`. Relevant constraints already est
 Matches the shadcn/ui and Assistant UI ecosystem's default target and the repo's existing per-service folder convention (`services/php` sibling).
 
 **Component libraries kept strictly separated: shadcn/ui for everything general-purpose, Assistant UI only for the agent panel's chat behavior.**
-Per explicit instruction: general UI (cards, forms, sidebar, badges, dialogs) is shadcn/ui; the ✦ panel's message list and composer are built from Assistant UI's headless primitives (`ThreadPrimitive`, `ComposerPrimitive`, `MessagePrimitive`) and nothing else in the app depends on Assistant UI. This keeps the deliberately-unscoped agent feature isolated so it can be developed or replaced independently later.
+General UI (cards, forms, sidebar, badges, dialogs, the team-switcher combobox) is shadcn/ui; the ✦ panel's message list and composer are built from Assistant UI's headless primitives (`ThreadPrimitive`, `ComposerPrimitive`, `MessagePrimitive`) and nothing else in the app depends on Assistant UI.
 
-The panel's *shell* (open/close state, the right-docked layout, backdrop) is shadcn's `Sheet`, not Assistant UI's own `AssistantModalPrimitive.Root/Trigger/Content`. The first implementation used `AssistantModalPrimitive`, whose positioning is a floating popover (anchored to the trigger via `floating-ui`, recalculated on every layout pass) — with a 600px-tall panel anchored to a small topbar button, this produced a continuous reposition loop (the panel's measured position changed on every check, confirmed via a Playwright script polling `boundingClientRect` every 300ms and seeing the panel jump to a different position each time) rather than settling. Reusing `Sheet` — already a fixed, viewport-docked panel, not a floating one — removes the feedback loop entirely and better matches the wireframe's docked-right intent besides.
+The panel's *shell* (open/close state, the right-docked layout, backdrop) is shadcn's `Sheet`, not Assistant UI's own `AssistantModalPrimitive.Root/Trigger/Content`. The first implementation used `AssistantModalPrimitive`, whose positioning is a floating popover (anchored to the trigger via `floating-ui`, recalculated on every layout pass) — with a 600px-tall panel anchored to a small topbar button, this produced a continuous reposition loop (confirmed via a Playwright script polling `boundingClientRect` every 300ms and seeing the panel jump to a different position each check) rather than settling. `Sheet` — already fixed and viewport-docked, not floating — removes the feedback loop and better matches the wireframe's docked-right intent besides.
 
-**Data access: direct client-side fetch to the Symfony API for real screens; static fixture modules for mock screens — no shared abstraction between them.**
-The two are intentionally *not* unified behind one data-access interface (e.g. a repository pattern returning either a fetch or a fixture). A real screen's component calls `fetch()` against a documented endpoint and handles its documented error shape; a mock screen's component imports a plain TS object/array from `lib/fixtures/*.ts`. This makes each screen's real/mock status visible from its imports alone, at the cost of an explicit rewrite (not a config flip) when a mock screen gets a real endpoint later — acceptable since that rewrite will need to happen anyway once the real response shape exists.
+**Dev-only auth bridge: a Next.js Route Handler does the Keycloak password-grant token exchange server-side.**
+The backend's OAuth client (`podium-api`) is confidential — its secret must never reach the browser. `src/app/api/auth/token/route.ts` runs the password grant (fixed `testuser` credentials) server-side using env vars, and returns only the resulting JWT to the client. The client (`lib/api/auth.ts`) caches it in memory, checks its `exp` claim, and `lib/api/client.ts` attaches it to every request and retries once on a 401. This is the one deliberate exception to "no BFF" from the original design: everything else still calls the Symfony API directly from client components.
 
-**Project name is a real form field, submitted to the backend alongside `repositoryUrl` and `teamId`.**
-As of this change, `RegisterProjectRequest` (`services/php`) does not yet have a `name` field — it's being added to the backend concurrently, outside this change. The frontend sends `name` in the `POST /api/projects` payload ahead of that landing. Symfony's serializer ignores unmapped request fields by default, so submitting `name` today is harmless (silently dropped) and starts working the moment the backend field ships — no frontend change needed when it lands. This is the same kind of forward/backward compatibility trade-off as the CORS limitation below: call it out, don't work around it.
+**Team switcher is a shadcn Combobox (Popover + Command), not a plain dropdown.**
+Adds search-by-typing and an inline "Create team" entry at the bottom of the list, requested after the first pass shipped a `DropdownMenu`-based switcher. `DropdownMenuItem` (Base UI's `Menu.Item`) uses `onClick`, not Radix's `onSelect` — the first combobox-less version used `onSelect` and silently did nothing on click; caught via an end-to-end Playwright check that asserted the project list actually changed after a team switch, not just that the click succeeded.
 
-**Team context is client-only state, no persistence decision made.**
-No backend endpoint lists a user's teams or a team's members, and there's no auth. The active-team switcher and "teams the user belongs to" list are backed by fixture/local state for this change (see Open Questions) — team *registration* is real and returns a real `id`, but nothing here yet reads teams back from the server.
+**Team/project/application data is fetched live; only Secrets stays on fixtures.**
+`TeamProvider` fetches `GET /api/teams` on mount; `ProjectsProvider` fetches `GET /api/teams/{teamId}/projects` whenever the active team changes, and combines `GET .../projects/{projectId}` + `GET .../applications` for detail. `registerProject`/`registerTeam` still call the real `POST` endpoints; since `POST /api/projects` returns only `{ id }` (no `hash`), the form fetches the created project by id before adding it to local state and navigating, rather than fabricating a `hash` client-side. Secrets keeps its original fixture-only design (`lib/fixtures/secrets.ts`) since no backend exists for it.
+
+**Project detail shows a "Servicios" list of real `Application`s, not the wireframe's deployment-history cards.**
+The wireframe's per-deployment cards (subdomain, commit, branch, author, screenshot thumbnail) modeled data the real `Application` doesn't have. Rather than keep shipping that as a permanent fixture indefinitely (which would look "real" but drift from what actually exists), the detail page now renders exactly what `GET .../applications` returns: service name, state (Spanish-labeled), version, and a pending-source-change indicator.
 
 **Sidebar items with no screen (Despliegues, Equipo, Ajustes) render as disabled/non-navigating list items, not dead links.**
 Avoids shipping a route that 404s or an empty shell page; keeps the wireframe's visual completeness (all five items always visible) without implying those sections work.
 
 ## Risks / Trade-offs
 
-- **Real registration forms will visibly fail in a browser (CORS)** until the separate CORS change ships → mitigate by making the error state honest (show the actual fetch failure, don't fake success) and by not blocking this change on that one; call it out in the PR/demo so it isn't mistaken for a bug.
-- **Fixture data can drift from the real future response shape**, making the eventual swap harder than expected → mitigate by shaping every fixture as the *documented* future contract where one exists (e.g. secrets fixtures shaped like `{ id, name, value }` matching `docs/podium-config/podium-yaml-guide.md`'s model) rather than whatever is visually convenient.
-- **The backend's `name` field could land with different validation than assumed** (e.g. a max length, uniqueness per team) → the frontend does only basic required-field validation; a backend rejection still surfaces via the existing "Registration fails" error-handling path, so no frontend change is needed if backend validation is stricter than expected.
+- **The dev auth bridge is a standing shortcut** — anyone running this app authenticates as the same seeded `testuser`, with no way to act as a different user → acceptable for this change (no accounts concept in the product yet); flagged in `services/web/README.md` so it isn't mistaken for real auth.
+- **Secrets fixture data can drift from the real future response shape** once that endpoint exists → mitigated by shaping the fixture as the *documented* future contract (`{ id, name, value }`, matching `docs/podium-config/podium-yaml-guide.md`) rather than whatever is visually convenient.
+- **`services/php`'s CORS config is dev-oriented** (`CORS_ALLOW_ORIGIN` regex matches any `localhost`/`127.0.0.1` port) → fine for this change's scope; tightening it for a real deployment is a separate concern.
 
 ## Open Questions
 
-- How a user acquires their first team/active-team context in the absence of auth (e.g. a `?teamId=` param, a `localStorage`-remembered id after registration, or always starting from an empty "create your team" state) is left to implementation — it doesn't change any spec requirement, since "register a team" and "switch active team" are both satisfied by any of these.
+None outstanding — the original open question (how a user acquires their first team) is resolved: `GET /api/teams` now returns the real list for the authenticated dev user.
