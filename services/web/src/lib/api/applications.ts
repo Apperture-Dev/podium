@@ -1,10 +1,12 @@
 import { getJson } from "./client";
 
 export type ApplicationState =
-  | "Registered"
+  | "Created"
   | "Building"
-  | "BuildFailed"
+  | "Built"
+  | "Deploying"
   | "Deployed"
+  | "BuildFailed"
   | "DeployFailed";
 
 export type Application = {

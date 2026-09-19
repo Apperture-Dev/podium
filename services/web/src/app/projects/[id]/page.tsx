@@ -8,6 +8,7 @@ import { ApplicationCard } from "@/components/projects/application-card";
 import { useTeam } from "@/lib/team-context";
 import { useProjects, type ProjectDetail } from "@/lib/projects-context";
 import { ApiError } from "@/lib/api/client";
+import { avatarToneFor } from "@/lib/avatar-tones";
 
 export default function ProyectoDetallePage({
   params,
@@ -16,7 +17,7 @@ export default function ProyectoDetallePage({
 }) {
   const { id } = use(params);
   const { activeTeam } = useTeam();
-  const { loadProjectDetail } = useProjects();
+  const { projects, loadProjectDetail } = useProjects();
 
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +48,8 @@ export default function ProyectoDetallePage({
   }, [activeTeam, id, loadProjectDetail]);
 
   const displayName = detail?.project.name ?? id;
+  const projectIndex = projects.findIndex((p) => p.id === id);
+  const tone = avatarToneFor(projectIndex === -1 ? 0 : projectIndex);
 
   return (
     <AppShell>
@@ -60,8 +63,11 @@ export default function ProyectoDetallePage({
       {detail && (
         <>
           <div className="flex items-start gap-4 mb-8">
-            <div className="flex size-14 shrink-0 items-center justify-center bg-muted">
-              <CubeFocus className="size-6" />
+            <div
+              className="flex size-14 shrink-0 items-center justify-center"
+              style={{ backgroundColor: tone.bg }}
+            >
+              <CubeFocus className="size-6" style={{ color: tone.fg }} />
             </div>
             <div>
               <h1 className="text-2xl">{detail.project.name}</h1>
@@ -74,10 +80,10 @@ export default function ProyectoDetallePage({
             </div>
           </div>
 
-          <h2 className="text-xl mb-4">Servicios</h2>
+          <h2 className="text-xl mb-4">Aplicaciones</h2>
           {detail.applications.length === 0 ? (
             <p className="text-muted-foreground">
-              Todavía no hay servicios registrados para este proyecto.
+              Todavía no hay aplicaciones registradas para este proyecto.
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
