@@ -28,6 +28,8 @@ final class ListApplicationsTest extends FunctionalTestCase
         self::assertCount(1, $applications);
         self::assertSame('backend', $applications[0]['serviceName']);
         self::assertSame($projectId, $applications[0]['projectId']);
+        self::assertSame('symfony', $applications[0]['framework']);
+        self::assertNotEmpty($applications[0]['createdAt']);
     }
 
     public function testRejectsAUserWhoIsNotAMemberOfTheOwningTeam(): void

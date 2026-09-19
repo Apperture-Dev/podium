@@ -19,18 +19,19 @@ final class ApplicationTest extends UnitTestCase
     {
         parent::setUp();
 
-        $this->application = Application::register('backend', 'project-1', 'team-1', 'template-1');
+        $this->application = Application::register('backend', 'project-1', 'team-1', 'template-1', 'symfony');
         $this->application->releaseEvents();
     }
 
     public function testRegisterStartsInCreatedAndPublishesApplicationRegistered(): void
     {
-        $application = Application::register('backend', 'project-1', 'team-1', 'template-1');
+        $application = Application::register('backend', 'project-1', 'team-1', 'template-1', 'symfony');
 
         $events = $application->releaseEvents();
 
         self::assertSame(ApplicationState::Created, $application->state());
         self::assertFalse($application->hasPendingSourceChange());
+        self::assertSame('symfony', $application->framework());
         self::assertCount(1, $events);
         self::assertInstanceOf(ApplicationRegistered::class, $events[0]);
         self::assertSame('backend', $events[0]->serviceName);

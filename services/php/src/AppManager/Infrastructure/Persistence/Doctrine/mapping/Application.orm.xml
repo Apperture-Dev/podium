@@ -20,6 +20,8 @@
         <field name="projectId" type="string" column="project_id" length="36"/>
         <field name="teamId" type="string" column="team_id" length="36"/>
         <field name="templateId" type="string" column="template_id" length="36"/>
+        <field name="framework" type="string" column="framework"/>
+        <field name="createdAt" type="datetime_immutable" column="created_at"/>
         <field name="state" type="application_state" column="state"/>
         <field name="version" type="string" column="version"/>
         <field name="hasPendingSourceChange" type="boolean" column="has_pending_source_change"/>

@@ -12,6 +12,7 @@ final readonly class ProjectDTO
         public string $hash,
         public string $repositoryUrl,
         public string $teamId,
+        public \DateTimeImmutable $createdAt,
     ) {
     }
 }

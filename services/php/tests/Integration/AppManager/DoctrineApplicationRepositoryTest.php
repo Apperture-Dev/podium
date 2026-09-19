@@ -24,7 +24,7 @@ final class DoctrineApplicationRepositoryTest extends IntegrationTestCase
 
     public function testItCanPersistAndRetrieveById(): void
     {
-        $application = Application::register('backend', 'project-1', 'team-1', 'template-1');
+        $application = Application::register('backend', 'project-1', 'team-1', 'template-1', 'symfony');
 
         $this->repository->save($application);
         $this->clearEntityManager();
@@ -34,11 +34,14 @@ final class DoctrineApplicationRepositoryTest extends IntegrationTestCase
         self::assertTrue($retrieved->id()->equals($application->id()));
         self::assertSame('backend', $retrieved->serviceName());
         self::assertSame(ApplicationState::Created, $retrieved->state());
+        self::assertSame('symfony', $retrieved->framework());
+        // La columna es TIMESTAMP(0): la comparación se hace a resolución de segundo.
+        self::assertSame($application->createdAt()->format('Y-m-d H:i:s'), $retrieved->createdAt()->format('Y-m-d H:i:s'));
     }
 
     public function testItCanBeFoundByProjectIdAndServiceName(): void
     {
-        $application = Application::register('backend', 'project-1', 'team-1', 'template-1');
+        $application = Application::register('backend', 'project-1', 'team-1', 'template-1', 'symfony');
         $this->repository->save($application);
         $this->clearEntityManager();
 
@@ -55,7 +58,7 @@ final class DoctrineApplicationRepositoryTest extends IntegrationTestCase
 
     public function testStateChangesArePersisted(): void
     {
-        $application = Application::register('backend', 'project-1', 'team-1', 'template-1');
+        $application = Application::register('backend', 'project-1', 'team-1', 'template-1', 'symfony');
         $application->markSourceChanged('rev-1', 'https://github.com/team/repo', 'github');
         $this->repository->save($application);
         $this->clearEntityManager();
@@ -75,8 +78,8 @@ final class DoctrineApplicationRepositoryTest extends IntegrationTestCase
 
     public function testFindByProjectIdReturnsOnlyApplicationsOfThatProject(): void
     {
-        $application = Application::register('backend', 'project-1', 'team-1', 'template-1');
-        $otherProjectApplication = Application::register('backend', 'project-2', 'team-1', 'template-1');
+        $application = Application::register('backend', 'project-1', 'team-1', 'template-1', 'symfony');
+        $otherProjectApplication = Application::register('backend', 'project-2', 'team-1', 'template-1', 'symfony');
         $this->repository->save($application);
         $this->repository->save($otherProjectApplication);
         $this->clearEntityManager();

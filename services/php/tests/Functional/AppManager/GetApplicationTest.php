@@ -27,6 +27,8 @@ final class GetApplicationTest extends FunctionalTestCase
         $application = $this->jsonResponse();
         self::assertSame('backend', $application['serviceName']);
         self::assertSame('Created', $application['state']);
+        self::assertSame('symfony', $application['framework']);
+        self::assertNotEmpty($application['createdAt']);
     }
 
     public function testRejectsAUserWhoIsNotAMemberOfTheOwningTeam(): void

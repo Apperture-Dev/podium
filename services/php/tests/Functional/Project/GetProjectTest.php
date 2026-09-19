@@ -24,6 +24,7 @@ final class GetProjectTest extends FunctionalTestCase
         self::assertSame($projectId, $project['id']);
         self::assertSame('Podium Backend', $project['name']);
         self::assertSame($teamId, $project['teamId']);
+        self::assertNotEmpty($project['createdAt']);
     }
 
     public function testRejectsAUserWhoIsNotAMemberOfTheTeam(): void

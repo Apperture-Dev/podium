@@ -27,12 +27,13 @@ final class Project
         private readonly ProjectName $name,
         private readonly string $teamId,
         private readonly string $repositoryUrl,
+        private readonly \DateTimeImmutable $createdAt,
     ) {
     }
 
     public static function register(string $repositoryUrl, string $teamId, ProjectName $name): self
     {
-        $project = new self(ProjectId::generate(), Hash::generate(), $name, $teamId, $repositoryUrl);
+        $project = new self(ProjectId::generate(), Hash::generate(), $name, $teamId, $repositoryUrl, new \DateTimeImmutable());
         $project->record(new ProjectRegistered($project->id->toString(), $repositoryUrl, $teamId));
 
         return $project;
@@ -45,9 +46,10 @@ final class Project
         ProjectName $name,
         string $teamId,
         string $repositoryUrl,
+        \DateTimeImmutable $createdAt,
         array $knownServiceNames,
     ): self {
-        $project = new self($id, $hash, $name, $teamId, $repositoryUrl);
+        $project = new self($id, $hash, $name, $teamId, $repositoryUrl, $createdAt);
         $project->knownServiceNames = $knownServiceNames;
 
         return $project;
@@ -114,6 +116,11 @@ final class Project
         return $this->repositoryUrl;
     }
 
+    public function createdAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
     /** @return list<string> */
     public function knownServiceNames(): array
     {
@@ -128,6 +135,7 @@ final class Project
             $this->hash->toString(),
             $this->repositoryUrl,
             $this->teamId,
+            $this->createdAt,
         );
     }
 

@@ -39,6 +39,7 @@ final class GetProjectController
             new OA\Property(property: 'hash', type: 'string'),
             new OA\Property(property: 'repositoryUrl', type: 'string'),
             new OA\Property(property: 'teamId', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'createdAt', type: 'string', format: 'date-time'),
         ]),
     )]
     #[OA\Response(response: 401, description: 'Bearer token ausente o inválido')]
@@ -60,6 +61,7 @@ final class GetProjectController
             'hash' => $project->hash,
             'repositoryUrl' => $project->repositoryUrl,
             'teamId' => $project->teamId,
+            'createdAt' => $project->createdAt->format(\DateTimeInterface::ATOM),
         ]);
     }
 }

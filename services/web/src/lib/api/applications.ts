@@ -11,6 +11,8 @@ export type Application = {
   serviceName: string;
   projectId: string;
   teamId: string;
+  framework: string;
+  createdAt: string;
   state: ApplicationState;
   version: string;
   hasPendingSourceChange: boolean;

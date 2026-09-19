@@ -25,7 +25,7 @@ final class DoctrineApplicationHistoryLogRepositoryTest extends IntegrationTestC
 
     public function testEveryMutationIsPersistedAsAnOrderedHistoryLog(): void
     {
-        $application = Application::register('backend', 'project-1', 'team-1', 'template-1');
+        $application = Application::register('backend', 'project-1', 'team-1', 'template-1', 'symfony');
         $application->markSourceChanged('rev-1', 'https://github.com/team/repo', 'github');
         $this->applications->save($application);
         $this->clearEntityManager();
@@ -41,7 +41,7 @@ final class DoctrineApplicationHistoryLogRepositoryTest extends IntegrationTestC
 
     public function testFindByApplicationIdReturnsEmptyWhenNoLogsExist(): void
     {
-        $application = Application::register('backend', 'project-2', 'team-1', 'template-1');
+        $application = Application::register('backend', 'project-2', 'team-1', 'template-1', 'symfony');
 
         self::assertSame([], $this->historyLogs->findByApplicationId($application->id()));
     }

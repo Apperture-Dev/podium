@@ -35,7 +35,7 @@ final readonly class ApplicationService
         $project = $this->projects->get(ProjectId::fromString($projectId));
         $templateId = $this->templateResolver->resolve($lang, $framework);
 
-        $application = Application::register($serviceName, $projectId, $project->teamId(), $templateId);
+        $application = Application::register($serviceName, $projectId, $project->teamId(), $templateId, $framework);
         $events = $application->releaseEvents();
 
         $this->applications->save($application);

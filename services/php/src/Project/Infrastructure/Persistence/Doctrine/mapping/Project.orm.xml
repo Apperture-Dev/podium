@@ -12,6 +12,7 @@
         <field name="name" type="project_name" column="name"/>
         <field name="teamId" type="string" column="team_id" length="36"/>
         <field name="repositoryUrl" type="string" column="repository_url"/>
+        <field name="createdAt" type="datetime_immutable" column="created_at"/>
         <field name="knownServiceNames" type="json" column="known_service_names"/>
     </entity>
 </doctrine-mapping>

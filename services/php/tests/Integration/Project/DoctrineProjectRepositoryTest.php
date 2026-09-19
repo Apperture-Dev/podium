@@ -37,6 +37,8 @@ final class DoctrineProjectRepositoryTest extends IntegrationTestCase
         self::assertSame('Test Project', $retrieved->name()->toString());
         self::assertSame('team-1', $retrieved->teamId());
         self::assertSame('https://github.com/team/repo', $retrieved->repositoryUrl());
+        // La columna es TIMESTAMP(0): la comparación se hace a resolución de segundo.
+        self::assertSame($project->createdAt()->format('Y-m-d H:i:s'), $retrieved->createdAt()->format('Y-m-d H:i:s'));
     }
 
     public function testGetThrowsWhenNotFound(): void

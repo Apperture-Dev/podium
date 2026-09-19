@@ -37,6 +37,8 @@ final class ListApplicationsController
             new OA\Property(property: 'serviceName', type: 'string'),
             new OA\Property(property: 'projectId', type: 'string', format: 'uuid'),
             new OA\Property(property: 'teamId', type: 'string', format: 'uuid'),
+            new OA\Property(property: 'framework', type: 'string'),
+            new OA\Property(property: 'createdAt', type: 'string', format: 'date-time'),
             new OA\Property(property: 'state', type: 'string'),
             new OA\Property(property: 'version', type: 'string'),
             new OA\Property(property: 'hasPendingSourceChange', type: 'boolean'),

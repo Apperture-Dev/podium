@@ -24,14 +24,16 @@ final class Application
         private readonly string $projectId,
         private readonly string $teamId,
         private readonly string $templateId,
+        private readonly string $framework,
+        private readonly \DateTimeImmutable $createdAt,
         private ApplicationState $state,
         private string $version,
         private bool $hasPendingSourceChange,
     ) {
     }
 
-    /** Reacciona a `ServiceDiscovered` (publicado por Project). */
-    public static function register(string $serviceName, string $projectId, string $teamId, string $templateId): self
+    /** Reacciona a `ServiceDiscovered` (publicado por Project). `framework` se copia tal cual del evento — misma materialización que ya se hace con `teamId`. */
+    public static function register(string $serviceName, string $projectId, string $teamId, string $templateId, string $framework): self
     {
         $application = new self(
             ApplicationId::generate(),
@@ -39,6 +41,8 @@ final class Application
             $projectId,
             $teamId,
             $templateId,
+            $framework,
+            new \DateTimeImmutable(),
             ApplicationState::Created,
             self::mintVersion(),
             false,
@@ -61,11 +65,13 @@ final class Application
         string $projectId,
         string $teamId,
         string $templateId,
+        string $framework,
+        \DateTimeImmutable $createdAt,
         ApplicationState $state,
         string $version,
         bool $hasPendingSourceChange,
     ): self {
-        return new self($id, $serviceName, $projectId, $teamId, $templateId, $state, $version, $hasPendingSourceChange);
+        return new self($id, $serviceName, $projectId, $teamId, $templateId, $framework, $createdAt, $state, $version, $hasPendingSourceChange);
     }
 
     /**
@@ -159,6 +165,8 @@ final class Application
             $this->serviceName,
             $this->projectId,
             $this->teamId,
+            $this->framework,
+            $this->createdAt,
             $this->state,
             $this->version,
             $this->hasPendingSourceChange,
@@ -188,6 +196,16 @@ final class Application
     public function templateId(): string
     {
         return $this->templateId;
+    }
+
+    public function framework(): string
+    {
+        return $this->framework;
+    }
+
+    public function createdAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
     }
 
     public function state(): ApplicationState

@@ -6,6 +6,7 @@ export type Project = {
   hash: string;
   repositoryUrl: string;
   teamId: string;
+  createdAt: string;
 };
 
 export type RegisterProjectInput = {
