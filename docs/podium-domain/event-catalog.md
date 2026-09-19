@@ -98,25 +98,37 @@ Todo mensaje publicado en Redis (vía Symfony Messenger en PHP, `go-redis` en Go
 
 ### `ApplicationDeployRequested`
 - **Emite**: App Manager (`Application` transiciona `Built → Deploying`)
-- **Consume**: Deploy
+- **Consume**: Deploy (`requestDeploy`)
 - **Stream**: `podium.application-deploy-requested`
-- **Payload**: no confirmado en ningún `model.md` (Deploy no tiene discovery propio todavía) — mínimo inferible por simetría con `ApplicationBuildRequested`: `serviceName`, `projectId`, `version`, referencia a la imagen, `deployEnvVars`, `databaseDeclaration` (heredados de `BuildSucceeded`). **Confirmar contra el discovery real de Deploy cuando se abra.**
+- **Payload**: `serviceName`, `projectId`, `version`, referencia a la imagen, `deployEnvVars`, `databaseDeclaration` (confirmado en `deploy/model.md`, simetría con `ApplicationBuildRequested`)
+
+### `DeployAttemptRequested`
+- **Emite**: Deploy (`requestDeploy`)
+- **Consume**: lanzador de ArgoCD — componente Go mínimo, sin lógica de dominio, **diferido, no construido todavía** (mismo que el lanzador de Build, ampliado, o uno nuevo — ver `deploy/discovery.md`). Solo hace `kubectl apply` del CR `Application` de ArgoCD (chart genérico + estos values); no hay imagen OCI de manifiestos por build
+- **Stream**: `podium.deploy-attempt-requested`
+- **Payload**: `deployAttemptId`, `image`, `envVars`, `databaseDeclaration` (los `values` para el chart genérico)
+
+### `HealthCheckSucceeded` / `HealthCheckExhausted`
+- **Emite**: el mismo lanzador Go diferido, traduciendo el estado de salud/sync que gestiona ArgoCD — **sin productor real todavía**
+- **Consume**: Deploy (`completeDeployAttempt`/`failDeployAttempt`) — DTO local sin productor, mismo patrón que `JobSucceeded`/`JobFailed` en Build
+- **Stream**: `podium.health-check-succeeded` / `podium.health-check-exhausted`
+- **Payload**: `deployAttemptId` + (fallo) `errorMessage`, `retryCount` (informativo — los 3 reintentos los decide ArgoCD/el lanzador, no el dominio de Deploy)
 
 ### `DeploySucceeded`
-- **Emite**: Deploy
+- **Emite**: Deploy (`completeDeployAttempt`)
 - **Consume**: App Manager (`markDeploySucceeded`)
 - **Stream**: `podium.deploy-succeeded`
-- **Payload**: no confirmado — Deploy sin discovery propio. Mínimo inferible: `serviceName`, `projectId`, `version`.
+- **Payload**: `serviceName`, `projectId`, `version` (confirmado en `deploy/model.md`)
 
 ### `DeployFailed`
-- **Emite**: Deploy (agota reintentos de health-check — invariante: 3 intentos fallidos, `context-map.md:60`)
+- **Emite**: Deploy (`failDeployAttempt`) — reintentos agotados, decidido por ArgoCD/el lanzador (invariante: 3 intentos fallidos, `context-map.md:60`), nunca contados por el dominio de Deploy
 - **Consume**: App Manager (`markDeployFailed`), Remediation
 - **Stream**: `podium.deploy-failed`
-- **Payload**: no confirmado — Deploy sin discovery propio. Mínimo inferible: `serviceName`, `projectId`, `version`, `errorMessage`.
+- **Payload**: `serviceName`, `projectId`, `version`, `errorMessage`, `retryCount` (opcional, informativo)
 
 ---
 
 ## Pendientes
 
-- `ApplicationDeployRequested`, `DeploySucceeded`, `DeployFailed`: payload exacto depende del discovery de Deploy, todavía no iniciado. No bloquea implementar Project/AppSource/App Manager/Team hoy — sí bloquea la integración real con Deploy.
 - `correlationId` es una convención de infraestructura agregada en este documento, no discutida en ninguna sesión de discovery — confirmar que no choca con ninguna decisión de dominio futura.
+- El lanzador de ArgoCD (Go, consume `BuildJobRequested` y `DeployAttemptRequested`) sigue diferido — no bloquea implementar Build/Deploy en PHP hoy, sí bloquea que cualquiera de los dos llegue a tocar Kubernetes de verdad.

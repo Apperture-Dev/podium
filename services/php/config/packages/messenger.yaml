@@ -14,6 +14,11 @@ when@test:
                 job_failed: 'in-memory://'
                 build_succeeded: 'in-memory://'
                 build_failed_app_manager: 'in-memory://'
+                deploy_attempt_requested: 'in-memory://'
+                health_check_succeeded: 'in-memory://'
+                health_check_exhausted: 'in-memory://'
+                deploy_succeeded: 'in-memory://'
+                deploy_failed_app_manager: 'in-memory://'
 
 framework:
     messenger:
@@ -94,6 +99,19 @@ framework:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options: { stream: 'podium.job-failed', group: 'build', consumer: 'build-1' }
 
+            # --- Deploy -> lanzador de ArgoCD (Go, diferido — sin consumidor real todavía) ---
+            deploy_attempt_requested:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.deploy-attempt-requested', group: 'unassigned', consumer: 'unassigned-1' }
+
+            # --- Lanzador de ArgoCD -> Deploy (Go, diferido — sin productor real todavía) ---
+            health_check_succeeded:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.health-check-succeeded', group: 'deploy', consumer: 'deploy-1' }
+            health_check_exhausted:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.health-check-exhausted', group: 'deploy', consumer: 'deploy-1' }
+
             failed_events:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options: { stream: 'podium.failed-events', group: 'failed', consumer: 'failed-1' }
@@ -115,6 +133,9 @@ framework:
             # Entrantes del lanzador de Kubernetes (Go, diferido) — sin clase compartible, DTO local (ver Build/Application/Message/)
             'App\Build\Application\Message\JobSucceeded': job_succeeded
             'App\Build\Application\Message\JobFailed': job_failed
-            # Entrantes de Deploy (Go, no implementado todavía) — sin clase compartible, DTO local (ver Application/Message/)
-            'App\AppManager\Application\Message\DeploySucceeded': deploy_succeeded
-            'App\AppManager\Application\Message\DeployFailed': deploy_failed_app_manager
+            'App\Deploy\Domain\Event\DeployAttemptRequested': deploy_attempt_requested
+            'App\Deploy\Domain\Event\DeploySucceeded': deploy_succeeded
+            'App\Deploy\Domain\Event\DeployFailed': deploy_failed_app_manager
+            # Entrantes del lanzador de ArgoCD (Go, diferido) — sin clase compartible, DTO local (ver Deploy/Application/Message/)
+            'App\Deploy\Application\Message\HealthCheckSucceeded': health_check_succeeded
+            'App\Deploy\Application\Message\HealthCheckExhausted': health_check_exhausted

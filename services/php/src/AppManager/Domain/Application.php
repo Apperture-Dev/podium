@@ -104,13 +104,18 @@ final class Application
         return $this->releaseEvents();
     }
 
-    /** Building → Built → Deploying, colapsado en una sola llamada (Built nunca queda en reposo). */
-    public function markBuildSucceeded(string $image): array
+    /**
+     * Building → Built → Deploying, colapsado en una sola llamada (Built nunca queda en reposo).
+     *
+     * @param array<string, string> $deployEnvVars
+     * @param array<string, string> $databaseDeclaration
+     */
+    public function markBuildSucceeded(string $image, array $deployEnvVars, array $databaseDeclaration): array
     {
         $before = $this->toDTO();
         $this->state = ApplicationState::Deploying;
 
-        $this->record(new ApplicationDeployRequested($this->serviceName, $this->projectId, $this->version, $image));
+        $this->record(new ApplicationDeployRequested($this->serviceName, $this->projectId, $this->version, $image, $deployEnvVars, $databaseDeclaration));
         $this->logMutation($before);
 
         return $this->releaseEvents();

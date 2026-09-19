@@ -10,14 +10,14 @@ use App\AppManager\Application\EventHandler\BuildSucceededHandler;
 use App\AppManager\Application\EventHandler\DeployFailedHandler;
 use App\AppManager\Application\EventHandler\DeploySucceededHandler;
 use App\AppManager\Application\EventHandler\ServiceDiscoveredHandler;
-use App\AppManager\Application\Message\DeployFailed;
-use App\AppManager\Application\Message\DeploySucceeded;
 use App\AppManager\Domain\ApplicationState;
 use App\AppManager\Domain\Event\ApplicationBuildRequested;
 use App\AppManager\Domain\Event\ApplicationDeployRequested;
 use App\AppManager\Domain\Port\ApplicationRepository;
 use App\Build\Domain\Event\BuildFailed;
 use App\Build\Domain\Event\BuildSucceeded;
+use App\Deploy\Domain\Event\DeployFailed;
+use App\Deploy\Domain\Event\DeploySucceeded;
 use App\Project\Domain\Event\ApplicationSourceChanged;
 use App\Project\Domain\Event\ServiceDiscovered;
 use App\Project\Domain\Port\ProjectRepository;
@@ -79,7 +79,7 @@ final class ApplicationLifecycleTest extends KernelTestCase
         self::assertCount(1, $deployRequested);
         self::assertInstanceOf(ApplicationDeployRequested::class, $deployRequested[0]->getMessage());
 
-        ($this->deploySucceededHandler)(new DeploySucceeded('backend', $this->projectId));
+        ($this->deploySucceededHandler)(new DeploySucceeded('backend', $this->projectId, $application->version()));
         $application = $this->applications->get($application->id());
         self::assertSame(ApplicationState::Deployed, $application->state());
     }
@@ -102,7 +102,7 @@ final class ApplicationLifecycleTest extends KernelTestCase
         $application = $this->applications->findByProjectIdAndServiceName($this->projectId, 'worker');
         ($this->buildSucceededHandler)(new BuildSucceeded('worker', $this->projectId, $application->version(), 'registry/worker:rev-1', [], []));
 
-        ($this->deployFailedHandler)(new DeployFailed('worker', $this->projectId, 'health check failed'));
+        ($this->deployFailedHandler)(new DeployFailed('worker', $this->projectId, $application->version(), 'health check failed', null));
 
         $application = $this->applications->get($application->id());
         self::assertSame(ApplicationState::DeployFailed, $application->state());

@@ -42,6 +42,8 @@ services:
         public: true
     App\Build\Application\ApplicationService:
         public: true
+    App\Deploy\Application\ApplicationService:
+        public: true
 
 when@test:
     services:

@@ -111,23 +111,48 @@ channels:
 
   applicationDeployRequested:
     address: podium.application-deploy-requested
-    description: Payload no confirmado — Deploy no tiene discovery propio todavía. Inferido por simetría con ApplicationBuildRequested.
     messages:
       ApplicationDeployRequested:
         $ref: '#/components/messages/ApplicationDeployRequested'
 
+  deployAttemptRequested:
+    address: podium.deploy-attempt-requested
+    description: >
+      Consumidor real todavía sin construir — lanzador de ArgoCD en Go,
+      mismo componente que consume buildJobRequested (ampliado) o uno
+      nuevo, sin lógica de dominio: solo hace kubectl apply del CR
+      Application de ArgoCD (chart genérico + estos values). Ver
+      deploy/model.md.
+    messages:
+      DeployAttemptRequested:
+        $ref: '#/components/messages/DeployAttemptRequested'
+
+  healthCheckSucceeded:
+    address: podium.health-check-succeeded
+    description: >
+      Sin productor real todavía (mismo motivo que deployAttemptRequested)
+      — el lanzador Go traduciría aquí el estado de salud que gestiona
+      ArgoCD una vez exista.
+    messages:
+      HealthCheckSucceeded:
+        $ref: '#/components/messages/HealthCheckSucceeded'
+
+  healthCheckExhausted:
+    address: podium.health-check-exhausted
+    description: Sin productor real todavía — ver healthCheckSucceeded. Los 3 reintentos son política de ArgoCD/el lanzador, no del dominio de Deploy.
+    messages:
+      HealthCheckExhausted:
+        $ref: '#/components/messages/HealthCheckExhausted'
+
   deploySucceeded:
     address: podium.deploy-succeeded
-    description: Payload no confirmado — Deploy no tiene discovery propio todavía.
     messages:
       DeploySucceeded:
         $ref: '#/components/messages/DeploySucceeded'
 
   deployFailed:
     address: podium.deploy-failed
-    description: >
-      Payload no confirmado — Deploy no tiene discovery propio todavía.
-      Fanout a 2 consumer groups (App Manager, Remediation).
+    description: Fanout a 2 consumer groups (App Manager, Remediation).
     messages:
       DeployFailed:
         $ref: '#/components/messages/DeployFailed'
@@ -281,7 +306,43 @@ operations:
     action: receive
     channel:
       $ref: '#/channels/applicationDeployRequested'
-    summary: Deploy lleva la imagen a estado corriendo y verifica salud.
+    summary: Deploy crea un DeployAttempt y arranca el ciclo.
+
+  publishDeployAttemptRequested:
+    action: send
+    channel:
+      $ref: '#/channels/deployAttemptRequested'
+    summary: DeployAttempt se crea (Pending) y pide que se aplique el CR Application de ArgoCD.
+
+  consumeDeployAttemptRequested:
+    action: receive
+    channel:
+      $ref: '#/channels/deployAttemptRequested'
+    summary: Lanzador de ArgoCD (Go, diferido) hace kubectl apply con los values dados.
+
+  publishHealthCheckSucceeded:
+    action: send
+    channel:
+      $ref: '#/channels/healthCheckSucceeded'
+    summary: ArgoCD confirma que el Deployment está corriendo y sano.
+
+  consumeHealthCheckSucceeded:
+    action: receive
+    channel:
+      $ref: '#/channels/healthCheckSucceeded'
+    summary: Deploy marca el DeployAttempt como Succeeded y publica DeploySucceeded.
+
+  publishHealthCheckExhausted:
+    action: send
+    channel:
+      $ref: '#/channels/healthCheckExhausted'
+    summary: Se agotan los reintentos de health-check (política de ArgoCD/el lanzador, no de Deploy).
+
+  consumeHealthCheckExhausted:
+    action: receive
+    channel:
+      $ref: '#/channels/healthCheckExhausted'
+    summary: Deploy marca el DeployAttempt como Failed y publica DeployFailed.
 
   publishDeploySucceeded:
     action: send
@@ -398,6 +459,27 @@ components:
       summary: App Manager pide a Deploy que lleve la imagen a estado corriendo.
       payload:
         $ref: '#/components/schemas/Envelope_ApplicationDeployRequested'
+
+    DeployAttemptRequested:
+      name: DeployAttemptRequested
+      title: Deploy attempt requested
+      summary: Deploy pide que se aplique el CR Application de ArgoCD con los values dados.
+      payload:
+        $ref: '#/components/schemas/Envelope_DeployAttemptRequested'
+
+    HealthCheckSucceeded:
+      name: HealthCheckSucceeded
+      title: Health check succeeded
+      summary: ArgoCD confirma que el Deployment está corriendo y sano. Sin productor real todavía.
+      payload:
+        $ref: '#/components/schemas/Envelope_HealthCheckSucceeded'
+
+    HealthCheckExhausted:
+      name: HealthCheckExhausted
+      title: Health check exhausted
+      summary: Se agotaron los reintentos de health-check (política de ArgoCD/el lanzador). Sin productor real todavía.
+      payload:
+        $ref: '#/components/schemas/Envelope_HealthCheckExhausted'
 
     DeploySucceeded:
       name: DeploySucceeded
@@ -546,6 +628,33 @@ components:
           properties:
             payload:
               $ref: '#/components/schemas/ApplicationDeployRequestedPayload'
+          required: [payload]
+
+    Envelope_DeployAttemptRequested:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/DeployAttemptRequestedPayload'
+          required: [payload]
+
+    Envelope_HealthCheckSucceeded:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/HealthCheckSucceededPayload'
+          required: [payload]
+
+    Envelope_HealthCheckExhausted:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/HealthCheckExhaustedPayload'
           required: [payload]
 
     Envelope_DeploySucceeded:
@@ -697,7 +806,6 @@ components:
 
     ApplicationDeployRequestedPayload:
       type: object
-      description: No confirmado en ningún model.md — Deploy sin discovery propio. Inferido por simetría con BuildSucceeded.
       properties:
         serviceName: { type: string }
         projectId: { type: string, format: uuid }
@@ -711,9 +819,38 @@ components:
           additionalProperties: { type: string }
       required: [serviceName, projectId, version, image]
 
+    DeployAttemptRequestedPayload:
+      type: object
+      description: Los values para el chart genérico de ArgoCD — no hay imagen OCI de manifiestos por build (ver deploy/model.md).
+      properties:
+        deployAttemptId: { type: string, format: uuid }
+        image: { type: string }
+        envVars:
+          type: object
+          additionalProperties: { type: string }
+        databaseDeclaration:
+          type: object
+          additionalProperties: { type: string }
+      required: [deployAttemptId, image, envVars, databaseDeclaration]
+
+    HealthCheckSucceededPayload:
+      type: object
+      description: Sin productor real todavía — lanzador Go diferido.
+      properties:
+        deployAttemptId: { type: string, format: uuid }
+      required: [deployAttemptId]
+
+    HealthCheckExhaustedPayload:
+      type: object
+      description: Sin productor real todavía — lanzador Go diferido. Los 3 reintentos son política de ArgoCD/el lanzador, no del dominio de Deploy.
+      properties:
+        deployAttemptId: { type: string, format: uuid }
+        errorMessage: { type: string }
+        retryCount: { type: integer, description: 'Informativo — cuántos intentos reportó el lanzador antes de agotar' }
+      required: [deployAttemptId, errorMessage]
+
     DeploySucceededPayload:
       type: object
-      description: No confirmado — Deploy sin discovery propio. Mínimo inferible.
       properties:
         serviceName: { type: string }
         projectId: { type: string, format: uuid }
@@ -722,10 +859,10 @@ components:
 
     DeployFailedPayload:
       type: object
-      description: No confirmado — Deploy sin discovery propio. Mínimo inferible.
       properties:
         serviceName: { type: string }
         projectId: { type: string, format: uuid }
         version: { type: string }
         errorMessage: { type: string }
+        retryCount: { type: integer, description: 'Informativo, opcional — ver HealthCheckExhaustedPayload' }
       required: [serviceName, projectId, version, errorMessage]

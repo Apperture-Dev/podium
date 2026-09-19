@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                       https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Deploy\Domain\DeployAttempt" table="deploy_attempts">
+        <id name="id" type="deploy_attempt_id" column="id">
+            <generator strategy="NONE"/>
+        </id>
+        <field name="teamId" type="string" column="team_id" length="36"/>
+        <field name="serviceName" type="string" column="service_name"/>
+        <field name="projectId" type="string" column="project_id" length="36"/>
+        <field name="version" type="string" column="version"/>
+        <field name="values" type="deploy_values" column="deploy_values"/>
+        <field name="status" type="deploy_status" column="status"/>
+        <field name="errorMessage" type="text" column="error_message" nullable="true"/>
+        <field name="retryCount" type="integer" column="retry_count" nullable="true"/>
+    </entity>
+</doctrine-mapping>

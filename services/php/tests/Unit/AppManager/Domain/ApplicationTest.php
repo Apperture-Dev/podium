@@ -66,7 +66,7 @@ final class ApplicationTest extends UnitTestCase
     public function testSourceChangedWhileDeployingDoesNotInterruptAndMarksPending(): void
     {
         $this->application->markSourceChanged('rev-1', 'https://github.com/team/repo', 'github');
-        $this->application->markBuildSucceeded('image:rev-1');
+        $this->application->markBuildSucceeded('image:rev-1', [], []);
         self::assertSame(ApplicationState::Deploying, $this->application->state());
         $versionDuringDeploy = $this->application->version();
 
@@ -82,7 +82,7 @@ final class ApplicationTest extends UnitTestCase
     {
         $this->application->markSourceChanged('rev-1', 'https://github.com/team/repo', 'github');
 
-        $events = $this->application->markBuildSucceeded('image:rev-1');
+        $events = $this->application->markBuildSucceeded('image:rev-1', [], []);
 
         self::assertSame(ApplicationState::Deploying, $this->application->state());
         self::assertCount(1, $events);
@@ -114,7 +114,7 @@ final class ApplicationTest extends UnitTestCase
     public function testDeploySucceededMovesToDeployedAndClearsPendingFlag(): void
     {
         $this->application->markSourceChanged('rev-1', 'https://github.com/team/repo', 'github');
-        $this->application->markBuildSucceeded('image:rev-1');
+        $this->application->markBuildSucceeded('image:rev-1', [], []);
         $this->application->markSourceChanged('rev-2', 'https://github.com/team/repo', 'github'); // queda pendiente
 
         $events = $this->application->markDeploySucceeded();
@@ -127,7 +127,7 @@ final class ApplicationTest extends UnitTestCase
     public function testDeployFailedMovesToDeployFailedAndClearsPendingFlag(): void
     {
         $this->application->markSourceChanged('rev-1', 'https://github.com/team/repo', 'github');
-        $this->application->markBuildSucceeded('image:rev-1');
+        $this->application->markBuildSucceeded('image:rev-1', [], []);
 
         $events = $this->application->markDeployFailed();
 

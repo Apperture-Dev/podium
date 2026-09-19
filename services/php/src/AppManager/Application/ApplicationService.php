@@ -48,12 +48,17 @@ final readonly class ApplicationService
         $this->dispatchAll($events);
     }
 
-    /** Reacciona a `BuildSucceeded` (publicado por Build, Go). */
-    public function markBuildSucceeded(string $projectId, string $serviceName, string $image): void
+    /**
+     * Reacciona a `BuildSucceeded` (publicado por Build).
+     *
+     * @param array<string, string> $deployEnvVars
+     * @param array<string, string> $databaseDeclaration
+     */
+    public function markBuildSucceeded(string $projectId, string $serviceName, string $image, array $deployEnvVars, array $databaseDeclaration): void
     {
         $application = $this->getByProjectIdAndServiceName($projectId, $serviceName);
 
-        $events = $application->markBuildSucceeded($image);
+        $events = $application->markBuildSucceeded($image, $deployEnvVars, $databaseDeclaration);
 
         $this->applications->save($application);
         $this->dispatchAll($events);
