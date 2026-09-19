@@ -18,8 +18,14 @@
     </php>
 
     <testsuites>
-        <testsuite name="Project Test Suite">
-            <directory>tests</directory>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+        <testsuite name="Functional">
+            <directory>tests/Functional</directory>
         </testsuite>
     </testsuites>
 
@@ -39,6 +45,10 @@
         </deprecationTrigger>
     </source>
 
+    <!-- DAMA Doctrine Test Bundle: envuelve cada test en una transacción y
+         hace rollback al terminar — aísla los tests de integración sin
+         necesidad de truncar tablas a mano. -->
     <extensions>
+        <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension"/>
     </extensions>
 </phpunit>

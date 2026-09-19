@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Project;
+namespace Tests\Functional\Project;
 
 use App\Project\Application\EventHandler\SourceChangedHandler;
 use App\Project\Application\Message\SourceChanged;
@@ -17,21 +17,34 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 final class ProcessSourceChangedTest extends KernelTestCase
 {
+    private SourceChangedHandler $handler;
+    private InMemoryPodiumManifestReader $manifestReader;
+    private ProjectRepository $projects;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        self::bootKernel();
+
+        $container = self::getContainer();
+        $this->handler = $container->get(SourceChangedHandler::class);
+        $this->manifestReader = $container->get(InMemoryPodiumManifestReader::class);
+        $this->projects = $container->get(ProjectRepository::class);
+    }
+
     public function testKnownServicePublishesApplicationSourceChanged(): void
     {
-        [$handler, $manifestReader, $projects] = $this->boot();
-
         $project = Project::register('https://github.com/team/repo', 'team-1');
         $project->processSourceChanged('rev-0', 'https://github.com/team/repo', 'github', [
             new DeclaredService('backend', 'php', 'symfony'),
         ]);
-        $projects->save($project);
+        $this->projects->save($project);
 
-        $manifestReader->willReturn([
+        $this->manifestReader->willReturn([
             new DeclaredService('backend', 'php', 'symfony'),
         ]);
 
-        $handler(new SourceChanged(
+        ($this->handler)(new SourceChanged(
             $project->id()->toString(),
             'rev-1',
             'https://github.com/team/repo',
@@ -48,16 +61,14 @@ final class ProcessSourceChangedTest extends KernelTestCase
 
     public function testNewServicePublishesServiceDiscoveredAndRegistersIt(): void
     {
-        [$handler, $manifestReader, $projects] = $this->boot();
-
         $project = Project::register('https://github.com/team/repo', 'team-1');
-        $projects->save($project);
+        $this->projects->save($project);
 
-        $manifestReader->willReturn([
+        $this->manifestReader->willReturn([
             new DeclaredService('frontend', 'typescript', 'react'),
         ]);
 
-        $handler(new SourceChanged(
+        ($this->handler)(new SourceChanged(
             $project->id()->toString(),
             'rev-1',
             'https://github.com/team/repo',
@@ -69,20 +80,7 @@ final class ProcessSourceChangedTest extends KernelTestCase
         self::assertInstanceOf(ServiceDiscovered::class, $published[0]->getMessage());
         self::assertSame('frontend', $published[0]->getMessage()->serviceName);
 
-        self::assertSame(['frontend'], $projects->get($project->id())->knownServiceNames());
-    }
-
-    /** @return array{0: SourceChangedHandler, 1: InMemoryPodiumManifestReader, 2: ProjectRepository} */
-    private function boot(): array
-    {
-        self::bootKernel();
-        $container = self::getContainer();
-
-        return [
-            $container->get(SourceChangedHandler::class),
-            $container->get(InMemoryPodiumManifestReader::class),
-            $container->get(ProjectRepository::class),
-        ];
+        self::assertSame(['frontend'], $this->projects->get($project->id())->knownServiceNames());
     }
 
     /** @return list<\Symfony\Component\Messenger\Envelope> */

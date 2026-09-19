@@ -35,6 +35,10 @@ when@test:
         dbal:
             # "TEST_TOKEN" is typically set by ParaTest
             dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+            # dama/doctrine-test-bundle necesita mantener viva la misma conexión
+            # real entre reboots del kernel de cada test — el middleware de
+            # reconexión por inactividad se lo impediría.
+            idle_connection_ttl: 0
 
 when@prod:
     doctrine:

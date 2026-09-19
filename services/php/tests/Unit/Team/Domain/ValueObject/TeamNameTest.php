@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Team\Domain\ValueObject;
+namespace Tests\Unit\Team\Domain\ValueObject;
 
 use App\Team\Domain\ValueObject\TeamName;
 use InvalidArgumentException;
-use PHPUnit\Framework\TestCase;
+use Tests\Unit\UnitTestCase;
 
-final class TeamNameTest extends TestCase
+final class TeamNameTest extends UnitTestCase
 {
     public function testAcceptsANameUpTo150Characters(): void
     {

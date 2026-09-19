@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Project\Domain\ValueObject;
+namespace Tests\Unit\Project\Domain\ValueObject;
 
 use App\Project\Domain\ValueObject\Hash;
 use InvalidArgumentException;
-use PHPUnit\Framework\TestCase;
+use Tests\Unit\UnitTestCase;
 
-final class HashTest extends TestCase
+final class HashTest extends UnitTestCase
 {
     public function testGenerateProducesEightLowercaseAlphanumericChars(): void
     {
