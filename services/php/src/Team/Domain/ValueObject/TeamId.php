@@ -31,4 +31,9 @@ final readonly class TeamId
     {
         return $this->value->equals($other->value);
     }
+
+    public function __toString(): string
+    {
+        return $this->toString();
+    }
 }

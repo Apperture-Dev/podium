@@ -1,0 +1,55 @@
+doctrine:
+    dbal:
+        url: '%env(resolve:DATABASE_URL)%'
+        profiling_collect_backtrace: '%kernel.debug%'
+        types:
+            project_id: App\Project\Infrastructure\Persistence\Doctrine\Type\ProjectIdType
+            hash: App\Project\Infrastructure\Persistence\Doctrine\Type\HashType
+            team_id: App\Team\Infrastructure\Persistence\Doctrine\Type\TeamIdType
+            team_name: App\Team\Infrastructure\Persistence\Doctrine\Type\TeamNameType
+            user_id_list: App\Team\Infrastructure\Persistence\Doctrine\Type\UserIdListType
+    orm:
+        validate_xml_mapping: true
+        naming_strategy: doctrine.orm.naming_strategy.underscore
+        identity_generation_preferences:
+            Doctrine\DBAL\Platforms\PostgreSQLPlatform: identity
+        # Mapeo explícito por BC, nunca auto_mapping ni atributos en las clases de
+        # dominio — el dominio no importa nada de Doctrine (ver CLAUDE.md global).
+        auto_mapping: false
+        mappings:
+            Project:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Project/Infrastructure/Persistence/Doctrine/mapping'
+                prefix: 'App\Project\Domain'
+                alias: Project
+            Team:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Team/Infrastructure/Persistence/Doctrine/mapping'
+                prefix: 'App\Team\Domain'
+                alias: Team
+
+when@test:
+    doctrine:
+        dbal:
+            # "TEST_TOKEN" is typically set by ParaTest
+            dbname_suffix: '_test%env(default::TEST_TOKEN)%'
+
+when@prod:
+    doctrine:
+        orm:
+            query_cache_driver:
+                type: pool
+                pool: doctrine.system_cache_pool
+            result_cache_driver:
+                type: pool
+                pool: doctrine.result_cache_pool
+
+    framework:
+        cache:
+            pools:
+                doctrine.result_cache_pool:
+                    adapter: cache.app
+                doctrine.system_cache_pool:
+                    adapter: cache.system

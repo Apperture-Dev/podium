@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                       https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Project\Domain\Project" table="projects">
+        <id name="id" type="project_id" column="id">
+            <generator strategy="NONE"/>
+        </id>
+        <field name="hash" type="hash" column="hash" unique="true"/>
+        <field name="teamId" type="string" column="team_id" length="36"/>
+        <field name="repositoryUrl" type="string" column="repository_url"/>
+        <field name="knownServiceNames" type="json" column="known_service_names"/>
+    </entity>
+</doctrine-mapping>
