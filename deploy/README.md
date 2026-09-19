@@ -8,8 +8,14 @@ separada, para que se pueda ver el despliegue completo en git.
 deploy/
 ├── base/            # Deployments, Services, Ingress, CNPG Cluster, Redis CR
 ├── overlays/prod/    # namespace + tags de imagen
-└── argocd/           # Application CR
+├── argocd/           # Application CR
+└── apply.sh          # automatiza los pasos 1-3 de abajo
 ```
+
+`./deploy/apply.sh` automatiza los pasos 1-3 (verificaciones, namespace, secretos idempotentes,
+alta de la `Application`) — requiere `GITLAB_REGISTRY_USER`/`GITLAB_REGISTRY_TOKEN` en el entorno
+salvo que `gitlab-token-auth` ya exista. Los pasos manuales se documentan igual abajo por si hace
+falta ejecutarlos sueltos o depurar algo.
 
 ## 1. Secretos a crear a mano (antes del primer sync)
 
