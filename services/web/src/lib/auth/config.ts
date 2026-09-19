@@ -13,3 +13,15 @@ export const SYMFONY_API_BASE_URL =
   process.env.SYMFONY_API_BASE_URL ?? "http://localhost:8090";
 
 export const KEYCLOAK_TOKEN_URL = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
+
+/**
+ * Admin credentials, used only by the registration Server Action to create
+ * a user via Keycloak's Admin REST API — `admin-cli` lives in the `master`
+ * realm, not `podium` (see docker/keycloak/podium-realm.json's comments).
+ * Dev-only shortcut: the realm's default admin/admin. A real deployment
+ * would use a narrower-scoped service account instead of the superuser.
+ */
+export const KEYCLOAK_ADMIN_USERNAME = process.env.KEYCLOAK_ADMIN_USERNAME ?? "admin";
+export const KEYCLOAK_ADMIN_PASSWORD = process.env.KEYCLOAK_ADMIN_PASSWORD ?? "admin";
+export const KEYCLOAK_ADMIN_TOKEN_URL = `${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token`;
+export const KEYCLOAK_ADMIN_USERS_URL = `${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/users`;

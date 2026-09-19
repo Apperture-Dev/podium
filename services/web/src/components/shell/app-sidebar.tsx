@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -21,6 +22,22 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { getCurrentUser, type CurrentUser } from "@/lib/api/me";
+
+function displayNameOf(user: CurrentUser | null): string {
+  if (!user) return "";
+  const fullName = [user.givenName, user.familyName].filter(Boolean).join(" ");
+  return user.name || fullName || user.preferredUsername || "";
+}
+
+function initialsOf(displayName: string): string {
+  const parts = displayName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
 
 /** Reads the `[id]` segment out of `/projects/[id]` (and its sub-routes), if present. */
 function useActiveProjectId(): string | null {
@@ -33,6 +50,25 @@ function useActiveProjectId(): string | null {
 export function AppSidebar() {
   const pathname = usePathname();
   const activeProjectId = useActiveProjectId();
+  const [user, setUser] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentUser()
+      .then((fetched) => {
+        if (!cancelled) setUser(fetched);
+      })
+      .catch(() => {
+        // Not logged in yet, or the fetch raced the login redirect — the
+        // proxy will have already sent an unauthenticated visitor to
+        // /login regardless, so this is safe to ignore.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const displayName = displayNameOf(user);
 
   const secretsHref = activeProjectId
     ? `/projects/${activeProjectId}/secrets`
@@ -87,11 +123,13 @@ export function AppSidebar() {
       <SidebarFooter className="px-4 py-4">
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
           <Avatar className="size-9">
-            <AvatarFallback>MR</AvatarFallback>
+            <AvatarFallback>{initialsOf(displayName)}</AvatarFallback>
           </Avatar>
           <div className="text-sm leading-tight">
-            <div className="font-medium">María Rey</div>
-            <div className="text-muted-foreground text-xs">Admin</div>
+            <div className="font-medium">{displayName || "…"}</div>
+            <div className="text-muted-foreground text-xs">
+              {user?.preferredUsername ?? ""}
+            </div>
           </div>
         </div>
       </SidebarFooter>
