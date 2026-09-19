@@ -33,22 +33,35 @@ async function getAdminToken(): Promise<string | null> {
   return accessToken;
 }
 
+/** Cheap format check — no verification link, no confirmation email, just shape. */
+function looksLikeAnEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 /**
  * Creates the user via Keycloak's Admin REST API (firstName/lastName are
  * real Keycloak user fields, not custom attributes — they come back as the
  * JWT's `given_name`/`family_name` claims once the user logs in), then logs
  * them in immediately with the same credentials so registration doesn't
  * dead-end at a second form.
+ *
+ * The email doubles as the Keycloak username — one field, one identifier,
+ * no separate "choose a username" step. It's taken at face value (format
+ * checked, never actually verified by sending mail — there's no mail
+ * sending in this app at all).
  */
 export async function register(_prevState: RegisterState, formData: FormData): Promise<RegisterState> {
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
-  const username = String(formData.get("username") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (!firstName || !lastName || !username || !password) {
+  if (!firstName || !lastName || !email || !password) {
     return { error: "Todos los campos son obligatorios.", success: false };
+  }
+  if (!looksLikeAnEmail(email)) {
+    return { error: "Introduce un email válido.", success: false };
   }
   if (password !== confirmPassword) {
     return { error: "Las contraseñas no coinciden.", success: false };
@@ -71,16 +84,18 @@ export async function register(_prevState: RegisterState, formData: FormData): P
         Authorization: `Bearer ${adminToken}`,
       },
       body: JSON.stringify({
-        username,
+        username: email,
+        email,
         firstName,
         lastName,
-        // Not collected in the form (only name/surname were asked for) —
-        // Keycloak 26's User Profile validation requires an email on the
-        // account regardless, or password-grant login fails afterward with
-        // "Account is not fully set up". A synthetic one is enough; nothing
-        // here ever sends this account real mail.
-        email: `${username}@podium.local`,
         enabled: true,
+        // Not a lie by omission the usual way: there's no verification
+        // email being skipped, because this app never sends mail at all.
+        // Keycloak 26's User Profile validation also requires this flag
+        // (or an actual verify-email flow) before password-grant login
+        // works — without it, login fails afterward with
+        // "Account is not fully set up" even though nothing in the user
+        // record looks like a pending required action.
         emailVerified: true,
         credentials: [{ type: "password", value: password, temporary: false }],
       }),
@@ -91,7 +106,7 @@ export async function register(_prevState: RegisterState, formData: FormData): P
   }
 
   if (createResponse.status === 409) {
-    return { error: "Ese nombre de usuario ya existe.", success: false };
+    return { error: "Ya existe una cuenta con ese email.", success: false };
   }
   if (!createResponse.ok) {
     return { error: "No se pudo crear el usuario.", success: false };
@@ -103,7 +118,7 @@ export async function register(_prevState: RegisterState, formData: FormData): P
     body: new URLSearchParams({
       grant_type: "password",
       client_id: KEYCLOAK_CLIENT_ID,
-      username,
+      username: email,
       password,
     }),
     cache: "no-store",

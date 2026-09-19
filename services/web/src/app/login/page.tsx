@@ -28,13 +28,13 @@ export default function LoginPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">Hostium</h1>
           <p className="text-sm text-muted-foreground">
-            Inicia sesión con tu usuario de Keycloak.
+            Inicia sesión con tu email.
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="username">Usuario</Label>
-          <Input id="username" name="username" autoComplete="username" required />
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" autoComplete="email" required />
         </div>
 
         <div className="space-y-2">

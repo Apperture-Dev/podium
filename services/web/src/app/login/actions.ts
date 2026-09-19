@@ -20,11 +20,11 @@ export type LoginState = {
  * services/php/docker/keycloak/podium-realm.json.
  */
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
-  const username = String(formData.get("username") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!username || !password) {
-    return { error: "Usuario y contraseña son obligatorios.", success: false };
+  if (!email || !password) {
+    return { error: "Email y contraseña son obligatorios.", success: false };
   }
 
   let response: Response;
@@ -35,7 +35,10 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
       body: new URLSearchParams({
         grant_type: "password",
         client_id: KEYCLOAK_CLIENT_ID,
-        username,
+        // The email itself is the Keycloak username (see register/actions.ts)
+        // — Keycloak's grant field is still called `username` regardless of
+        // what identifier it actually holds.
+        username: email,
         password,
       }),
       cache: "no-store",
@@ -48,7 +51,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
   }
 
   if (!response.ok) {
-    return { error: "Usuario o contraseña incorrectos.", success: false };
+    return { error: "Email o contraseña incorrectos.", success: false };
   }
 
   const { access_token: accessToken, expires_in: expiresIn } = (await response.json()) as {

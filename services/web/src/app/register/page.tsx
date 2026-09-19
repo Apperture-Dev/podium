@@ -40,8 +40,8 @@ export default function RegisterPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="username">Usuario</Label>
-          <Input id="username" name="username" autoComplete="username" required />
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" autoComplete="email" required />
         </div>
 
         <div className="space-y-2">
