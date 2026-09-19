@@ -1,4 +1,5 @@
 stages:
+  - test
   - build
   - deploy
 
@@ -154,3 +155,41 @@ deploy-web:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - services/web/**/*
+
+test-activator:
+  stage: test
+  image: golang:1.23-bookworm
+  script:
+    - cd services/activator
+    - go vet ./...
+    - go test ./... -race
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - services/activator/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/activator/**/*
+
+build-activator:
+  extends: .buildah-base
+  stage: build
+  needs: ["test-activator"]
+  script:
+    - |
+      buildah bud --isolation=chroot --layers \
+        --cache-from "$CI_REGISTRY_IMAGE/activator" \
+        --target prod \
+        -t "$CI_REGISTRY_IMAGE/activator:$CI_COMMIT_SHORT_SHA" \
+        -t "$CI_REGISTRY_IMAGE/activator:latest" \
+        -f services/activator/Dockerfile services/activator
+    - buildah push "$CI_REGISTRY_IMAGE/activator:latest"
+    - buildah push --digestfile /tmp/image-digest.txt "$CI_REGISTRY_IMAGE/activator:$CI_COMMIT_SHORT_SHA"
+    - echo "IMAGE_DIGEST=$(cat /tmp/image-digest.txt)" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/activator/**/*
