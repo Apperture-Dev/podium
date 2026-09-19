@@ -39,3 +39,4 @@ Señalizar el resultado (`JobSucceeded`/`JobFailed`) queda diferido — ver
 | lang | framework | Convención |
 |---|---|---|
 | `nodejs` | `nestjs` | `npm ci && npm run build`, arranca con `npm start` |
+| `nodejs` | `nextjs` | `npm ci && npm run build`, arranca con `npm start` (`next start`); sin asumir `output: "standalone"` |

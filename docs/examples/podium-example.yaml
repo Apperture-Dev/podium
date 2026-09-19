@@ -32,7 +32,7 @@ app:
 frontend:
   src: frontend
   lang: nodejs
-  framework: react
+  framework: nextjs
   environment:
     NODE_ENV: production
     BACKEND_URL: ${app.url}         # Referencia a la URL pública de otro

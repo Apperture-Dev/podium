@@ -30,14 +30,23 @@ final class SeedTemplatesCommand extends Command
         // internamente templates/{lang}-{framework}.Dockerfile según lo
         // que declare podium.yaml. Convención: "npm ci && npm run build
         // && npm start" (ver docs/examples/podium-example.yaml).
-        $id = $this->applicationService->defineTemplate(
+        $nestjsId = $this->applicationService->defineTemplate(
             'nodejs',
             'nestjs',
             'ghcr.io/apperture-dev/podium-build-runner:latest',
             [],
         );
 
-        $output->writeln(\sprintf('Template nodejs/nestjs creado: %s', $id));
+        $output->writeln(\sprintf('Template nodejs/nestjs creado: %s', $nestjsId));
+
+        $nextjsId = $this->applicationService->defineTemplate(
+            'nodejs',
+            'nextjs',
+            'ghcr.io/apperture-dev/podium-build-runner:latest',
+            [],
+        );
+
+        $output->writeln(\sprintf('Template nodejs/nextjs creado: %s', $nextjsId));
 
         return Command::SUCCESS;
     }
