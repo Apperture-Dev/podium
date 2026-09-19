@@ -1,0 +1,27 @@
+services:
+  frankenphp:
+    build:
+      context: .
+      dockerfile: ./docker/franken-php/Dockerfile
+      target: prod
+    restart: unless-stopped
+    environment:
+      FRANKENPHP_CONFIG: "worker ./public/index.php"
+      MESSENGER_TRANSPORT_DSN: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_started
+    ports:
+      - "${PODIUM_HTTP_PORT:-8090}:80"
+      - "${PODIUM_METRICS_PORT:-9091}:9090"
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    # Sin publicar puerto al host: solo se usa dentro de la red de compose (evita
+    # chocar con otros Redis locales, p. ej. craft-market en 6379).
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

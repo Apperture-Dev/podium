@@ -1,0 +1,100 @@
+{
+	metrics
+	# Habilitar métricas de Caddy
+	servers {
+		timeouts {
+			read_body 30s
+			read_header 10s
+			write 30s
+			idle 120s
+		}
+		# Configuración optimizada para conexiones rápidas
+		max_header_size 1MB
+		protocols h2c h1
+	}
+	frankenphp {
+		worker ./public/index.php
+	}
+}
+
+# Servidor principal para la aplicación
+:80 {
+	# Configuración para servir la aplicación PHP
+	root * /app/public
+	@health path /health
+	log_skip @health
+	encode {
+		br 6 # Brotli nivel 6 (balance velocidad/compresión)
+		gzip 6 # Gzip nivel 6
+		zstd best # Zstandard nivel 3 (balance velocidad/compresión)
+		minimum_length 256
+		match {
+			header Content-Type text/*
+				  header Content-Type application/json*n
+				  header Content-Type application/javascript*
+			header Content-Type application/xml*
+		}
+	}
+	# Cache headers para assets estáticos
+	@static {
+		file
+		path *.css *.js *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2
+	}
+#
+#	@assets {
+#        path /assets/*
+#    }
+#
+#    file_server @assets {
+#        root /app/public/
+#    }
+
+	header {
+		# Eliminar headers innecesarios
+		-Server
+		-X-Powered-By
+		@static Cache-Control "public, max-age=86400"
+
+		# Headers de seguridad optimizados
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	# Configurar PHP con FrankenPHP
+	php_server
+#
+#	rewrite index.php
+#	php {
+#        root /app/public
+#    }
+
+	# Logs de acceso
+	log {
+		output stdout
+		format json
+		level WARN
+	}
+}
+
+# Servidor dedicado para métricas (puerto separado)
+:9090 {
+	@metrics path /metrics
+	log_skip @metrics
+	# Endpoint de métricas de Caddy
+	handle /metrics {
+		metrics /metrics
+	}
+	@health path /health
+	log_skip @health
+	# Endpoint de salud
+	handle /health {
+		respond "OK" 200
+	}
+
+	# Logs para el endpoint de métricas
+	log {
+		output stdout
+		format json
+	}
+}

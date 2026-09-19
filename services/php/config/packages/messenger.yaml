@@ -1,0 +1,83 @@
+when@test:
+    framework:
+        messenger:
+            transports:
+                source_changed: 'in-memory://'
+                application_source_changed: 'in-memory://'
+                service_discovered: 'in-memory://'
+
+framework:
+    messenger:
+        failure_transport: failed_events
+
+        transports:
+            # --- Producer-side / consumidos por Project ---
+            source_changed:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.source-changed', group: 'project', consumer: 'project-1' }
+
+            # --- Publicados por Project, consumidos por App Manager ---
+            application_source_changed:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.application-source-changed', group: 'app-manager', consumer: 'app-manager-1' }
+            service_discovered:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.service-discovered', group: 'app-manager', consumer: 'app-manager-1' }
+
+            # --- Build -> App Manager ---
+            build_succeeded:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.build-succeeded', group: 'app-manager', consumer: 'app-manager-1' }
+
+            # --- BuildFailed: único fanout real (App Manager + Notification + Remediation), un transporte
+            #     por consumidor porque cada uno necesita su propio consumer group sobre el mismo stream ---
+            build_failed_app_manager:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.build-failed', group: 'app-manager', consumer: 'app-manager-1' }
+            build_failed_notification:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.build-failed', group: 'notification', consumer: 'notification-1' }
+            build_failed_remediation:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.build-failed', group: 'remediation', consumer: 'remediation-1' }
+
+            # --- App Manager -> Deploy ---
+            application_deploy_requested:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.application-deploy-requested', group: 'deploy', consumer: 'deploy-1' }
+
+            # --- Deploy -> App Manager ---
+            deploy_succeeded:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.deploy-succeeded', group: 'app-manager', consumer: 'app-manager-1' }
+
+            # --- DeployFailed: fanout a App Manager + Remediation ---
+            deploy_failed_app_manager:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.deploy-failed', group: 'app-manager', consumer: 'app-manager-1' }
+            deploy_failed_remediation:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.deploy-failed', group: 'remediation', consumer: 'remediation-1' }
+
+            # --- App Manager -> Build ---
+            application_build_requested:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.application-build-requested', group: 'build', consumer: 'build-1' }
+
+            failed_events:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.failed-events', group: 'failed', consumer: 'failed-1' }
+
+        default_bus: command.bus
+
+        buses:
+            # bus de comandos/queries — separado del bus de eventos, tal como exige
+            # la regla de arquitectura (Command/Query separation, eventos en bus aparte)
+            command.bus: ~
+            event.bus:
+                default_middleware: allow_no_handlers
+
+        routing:
+            'App\Project\Application\Message\SourceChanged': source_changed
+            'App\Project\Domain\Event\ApplicationSourceChanged': application_source_changed
+            'App\Project\Domain\Event\ServiceDiscovered': service_discovered
