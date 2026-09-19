@@ -9,8 +9,14 @@ function primaryDomain(project: Project): string {
   return `${project.hash}.apperture.dev`;
 }
 
-export function ProjectCard({ project }: { project: Project }) {
-  const tone = avatarToneFor(project.id);
+export function ProjectCard({
+  project,
+  index,
+}: {
+  project: Project;
+  index: number;
+}) {
+  const tone = avatarToneFor(index);
   return (
     <Link href={`/projects/${project.id}`}>
       <Card className="h-full transition-colors hover:bg-accent/40">

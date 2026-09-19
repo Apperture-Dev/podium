@@ -11,14 +11,10 @@ const AVATAR_TONES: AvatarTone[] = [
 ];
 
 /**
- * Deterministic tone per project id, so the color is stable across renders
- * instead of reshuffling on every repaint like Math.random() would.
+ * Tone by position in the project list (creation order), not a hash of the
+ * id — a hash lets two nearby projects land on the same tone by chance.
+ * Cycling by index guarantees all 6 tones appear before any repeats.
  */
-export function avatarToneFor(id: string): AvatarTone {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  }
-  const index = Math.abs(hash) % AVATAR_TONES.length;
-  return AVATAR_TONES[index];
+export function avatarToneFor(index: number): AvatarTone {
+  return AVATAR_TONES[index % AVATAR_TONES.length];
 }
