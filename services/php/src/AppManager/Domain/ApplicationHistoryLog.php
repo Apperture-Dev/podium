@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\AppManager\Domain;
 
 use App\AppManager\Domain\ValueObject\ApplicationDTO;
+use App\AppManager\Domain\ValueObject\ApplicationId;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -16,6 +17,7 @@ final readonly class ApplicationHistoryLog
 {
     private function __construct(
         private Uuid $id,
+        private ApplicationId $applicationId,
         private string $serviceName,
         private ApplicationDTO $before,
         private ApplicationDTO $after,
@@ -24,24 +26,30 @@ final readonly class ApplicationHistoryLog
     }
 
     /** @internal solo Application debe llamar esto */
-    public static function record(string $serviceName, ApplicationDTO $before, ApplicationDTO $after): self
+    public static function record(ApplicationId $applicationId, string $serviceName, ApplicationDTO $before, ApplicationDTO $after): self
     {
-        return new self(Uuid::v7(), $serviceName, $before, $after, new \DateTimeImmutable());
+        return new self(Uuid::v7(), $applicationId, $serviceName, $before, $after, new \DateTimeImmutable());
     }
 
     public static function rehydrate(
         Uuid $id,
+        ApplicationId $applicationId,
         string $serviceName,
         ApplicationDTO $before,
         ApplicationDTO $after,
         \DateTimeImmutable $createdAt,
     ): self {
-        return new self($id, $serviceName, $before, $after, $createdAt);
+        return new self($id, $applicationId, $serviceName, $before, $after, $createdAt);
     }
 
     public function id(): Uuid
     {
         return $this->id;
+    }
+
+    public function applicationId(): ApplicationId
+    {
+        return $this->applicationId;
     }
 
     public function serviceName(): string

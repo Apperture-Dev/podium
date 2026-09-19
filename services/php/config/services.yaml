@@ -24,6 +24,14 @@ services:
     App\Project\Domain\Port\PodiumManifestReader: '@App\Project\Infrastructure\Manifest\NotImplementedPodiumManifestReader'
     App\AppManager\Domain\Port\TemplateResolver: '@App\AppManager\Infrastructure\Template\NotImplementedTemplateResolver'
 
+    # Sin consumidor real todavía (nada type-hinta el puerto aún) — autowiring
+    # no genera el alias interfaz→implementación por sí solo, y sin uso el
+    # compilador lo eliminaría del contenedor aunque se declare a mano; por
+    # eso necesita `public: true`, igual que los ApplicationService de abajo.
+    App\AppManager\Domain\Port\ApplicationHistoryLogRepository:
+        alias: App\AppManager\Infrastructure\Persistence\DoctrineApplicationHistoryLogRepository
+        public: true
+
     # Puntos de entrada reales de cada BC — públicos porque los llaman
     # controllers/consumers/tests directamente, no solo otros servicios.
     App\Project\Application\ApplicationService:

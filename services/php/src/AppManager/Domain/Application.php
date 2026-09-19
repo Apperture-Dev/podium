@@ -213,7 +213,7 @@ final class Application
 
     private function logMutation(ApplicationDTO $before): void
     {
-        $this->historyLogs[] = ApplicationHistoryLog::record($this->serviceName, $before, $this->toDTO());
+        $this->historyLogs[] = ApplicationHistoryLog::record($this->id, $this->serviceName, $before, $this->toDTO());
     }
 
     private function record(object $event): void

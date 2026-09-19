@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                       https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\AppManager\Domain\ApplicationHistoryLog" table="application_history_logs">
+        <id name="id" type="application_history_log_id" column="id">
+            <generator strategy="NONE"/>
+        </id>
+        <field name="applicationId" type="application_id" column="application_id" length="36"/>
+        <field name="serviceName" type="string" column="service_name"/>
+        <field name="before" type="application_dto" column="before"/>
+        <field name="after" type="application_dto" column="after"/>
+        <field name="createdAt" type="datetime_immutable" column="created_at"/>
+    </entity>
+</doctrine-mapping>

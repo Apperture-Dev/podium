@@ -33,6 +33,11 @@ final class DoctrineApplicationRepository implements ApplicationRepository
     public function save(Application $application): void
     {
         $this->entityManager->persist($application);
+
+        foreach ($application->historyLogs() as $historyLog) {
+            $this->entityManager->persist($historyLog);
+        }
+
         $this->entityManager->flush();
     }
 }

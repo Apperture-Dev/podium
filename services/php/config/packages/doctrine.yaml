@@ -11,6 +11,8 @@ doctrine:
             app_source_id: App\AppSource\Infrastructure\Persistence\Doctrine\Type\AppSourceIdType
             application_id: App\AppManager\Infrastructure\Persistence\Doctrine\Type\ApplicationIdType
             application_state: App\AppManager\Infrastructure\Persistence\Doctrine\Type\ApplicationStateType
+            application_history_log_id: App\AppManager\Infrastructure\Persistence\Doctrine\Type\UuidType
+            application_dto: App\AppManager\Infrastructure\Persistence\Doctrine\Type\ApplicationDtoType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
