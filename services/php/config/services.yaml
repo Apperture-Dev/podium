@@ -23,6 +23,13 @@ services:
     # please note that last definitions always *replace* previous ones
     App\Project\Domain\Port\PodiumManifestReader: '@App\Project\Infrastructure\Manifest\NotImplementedPodiumManifestReader'
 
+    # Puntos de entrada reales de cada BC — públicos porque los llaman
+    # controllers/consumers/tests directamente, no solo otros servicios.
+    App\Project\Application\ApplicationService:
+        public: true
+    App\Team\Application\ApplicationService:
+        public: true
+
 when@test:
     services:
         App\Project\Domain\Port\PodiumManifestReader: '@App\Project\Infrastructure\Manifest\InMemoryPodiumManifestReader'

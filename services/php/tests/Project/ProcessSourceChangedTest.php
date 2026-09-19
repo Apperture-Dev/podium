@@ -17,7 +17,7 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 final class ProcessSourceChangedTest extends KernelTestCase
 {
-    public function test_known_service_publishes_application_source_changed(): void
+    public function testKnownServicePublishesApplicationSourceChanged(): void
     {
         [$handler, $manifestReader, $projects] = $this->boot();
 
@@ -46,7 +46,7 @@ final class ProcessSourceChangedTest extends KernelTestCase
         self::assertCount(0, $this->envelopesOn('service_discovered'));
     }
 
-    public function test_new_service_publishes_service_discovered_and_registers_it(): void
+    public function testNewServicePublishesServiceDiscoveredAndRegistersIt(): void
     {
         [$handler, $manifestReader, $projects] = $this->boot();
 

@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ProjectTest extends TestCase
 {
-    public function test_known_service_produces_application_source_changed(): void
+    public function testKnownServiceProducesApplicationSourceChanged(): void
     {
         $project = Project::register('https://github.com/team/repo', 'team-1');
         $project->processSourceChanged('rev-0', 'https://github.com/team/repo', 'github', [
@@ -29,7 +29,7 @@ final class ProjectTest extends TestCase
         self::assertSame(['backend'], $project->knownServiceNames());
     }
 
-    public function test_new_service_produces_service_discovered_and_becomes_known(): void
+    public function testNewServiceProducesServiceDiscoveredAndBecomesKnown(): void
     {
         $project = Project::register('https://github.com/team/repo', 'team-1');
 
@@ -43,7 +43,7 @@ final class ProjectTest extends TestCase
         self::assertSame(['frontend'], $project->knownServiceNames());
     }
 
-    public function test_mixed_known_and_new_services_produce_one_event_each(): void
+    public function testMixedKnownAndNewServicesProduceOneEventEach(): void
     {
         $project = Project::register('https://github.com/team/repo', 'team-1');
         $project->processSourceChanged('rev-0', 'https://github.com/team/repo', 'github', [
@@ -61,7 +61,7 @@ final class ProjectTest extends TestCase
         self::assertSame(['backend', 'frontend'], $project->knownServiceNames());
     }
 
-    public function test_events_are_released_after_each_call(): void
+    public function testEventsAreReleasedAfterEachCall(): void
     {
         $project = Project::register('https://github.com/team/repo', 'team-1');
         $project->processSourceChanged('rev-0', 'https://github.com/team/repo', 'github', [

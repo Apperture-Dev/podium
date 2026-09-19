@@ -4,29 +4,22 @@ declare(strict_types=1);
 
 namespace App\Tests\Team;
 
-use App\Team\Application\Command\RegisterTeam;
+use App\Team\Application\ApplicationService;
 use App\Team\Domain\Port\TeamRepository;
 use App\Team\Domain\ValueObject\TeamId;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 final class RegisterTeamTest extends KernelTestCase
 {
-    public function test_registering_a_team_makes_the_creator_its_first_member(): void
+    public function testRegisteringATeamMakesTheCreatorItsFirstMember(): void
     {
         self::bootKernel();
         $container = self::getContainer();
 
-        /** @var MessageBusInterface $commandBus */
-        $commandBus = $container->get('command.bus');
-        /** @var TeamRepository $teams */
+        $applicationService = $container->get(ApplicationService::class);
         $teams = $container->get(TeamRepository::class);
 
-        $envelope = $commandBus->dispatch(new RegisterTeam('Podium Team', 'user-1'));
-        $teamId = $envelope->last(HandledStamp::class)->getResult();
-
-        self::assertIsString($teamId);
+        $teamId = $applicationService->registerTeam('Podium Team', 'user-1');
 
         $team = $teams->get(TeamId::fromString($teamId));
         self::assertSame('Podium Team', $team->name()->toString());

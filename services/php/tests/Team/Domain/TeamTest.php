@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 final class TeamTest extends TestCase
 {
-    public function test_register_makes_creator_the_first_member(): void
+    public function testRegisterMakesCreatorTheFirstMember(): void
     {
         $creator = UserId::fromString('user-1');
 
@@ -22,7 +22,7 @@ final class TeamTest extends TestCase
         self::assertSame('Podium Team', $team->name()->toString());
     }
 
-    public function test_each_registration_gets_a_distinct_id(): void
+    public function testEachRegistrationGetsADistinctId(): void
     {
         $creator = UserId::fromString('user-1');
 

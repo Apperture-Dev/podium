@@ -10,14 +10,14 @@ use PHPUnit\Framework\TestCase;
 
 final class HashTest extends TestCase
 {
-    public function test_generate_produces_eight_lowercase_alphanumeric_chars(): void
+    public function testGenerateProducesEightLowercaseAlphanumericChars(): void
     {
         $hash = Hash::generate();
 
         self::assertMatchesRegularExpression('/^[a-z0-9]{8}$/', $hash->toString());
     }
 
-    public function test_rejects_invalid_format(): void
+    public function testRejectsInvalidFormat(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
