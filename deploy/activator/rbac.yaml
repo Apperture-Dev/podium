@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: activator
+---
+# Acotado al máximo posible: el activator necesita observar/actuar sobre
+# Deployments/Services/Ingresses de namespaces de tenant que no existen
+# todavía en tiempo de despliegue (se crean en caliente) — eso obliga a un
+# ClusterRole en vez de un Role por namespace. Nunca se concede create/delete
+# sobre Deployments, nada sobre secrets/pods, y el único permiso de escritura
+# sobre Deployment es el subrecurso "scale" — ya acotado por el propio
+# subrecurso a tocar solo réplicas, nunca imagen/env/límites.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: activator
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: activator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: activator
+subjects:
+  - kind: ServiceAccount
+    name: activator
+    namespace: activator-system
+---
+# El ConfigMap del kill switch (activator-config) es namespaced, dentro del
+# propio namespace del activator — no necesita alcance de clúster.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: activator-config-reader
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: activator-config-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: activator-config-reader
+subjects:
+  - kind: ServiceAccount
+    name: activator

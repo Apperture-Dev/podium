@@ -1,0 +1,27 @@
+# A diferencia del despliegue de las apps de los equipos del hackathon (chart
+# OCI + Application aplicada con kubectl, sin git — ver
+# docs/hackathon-plan/plan-hackbarna-2026.md), el activator es
+# infraestructura propia de Podium: una sola instancia, cambios poco
+# frecuentes, con más RBAC que ningún otro componente del sistema aparte del
+# control plane — se trata como código de producto, trackeado en git con
+# revisión por PR, igual que deploy/argocd/hostium.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: activator
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.com/apperturedev/podium.git
+    targetRevision: HEAD
+    path: deploy/activator
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: activator-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

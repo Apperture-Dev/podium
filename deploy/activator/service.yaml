@@ -1,0 +1,16 @@
+# Este es el Service al que apuntan los Ingress de los tenants cuando el
+# kill switch está en "true" — ver internal/killswitch.Reconciler.
+apiVersion: v1
+kind: Service
+metadata:
+  name: activator
+  labels:
+    app: activator
+spec:
+  type: ClusterIP
+  selector:
+    app: activator
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
