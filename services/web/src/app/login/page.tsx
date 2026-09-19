@@ -1,17 +1,25 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { login, type LoginState } from "./actions";
 
 const initialState: LoginState = { error: null, success: false };
 
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(login, initialState);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     // Full navigation, not router.push(): see the comment in actions.ts —
@@ -56,13 +64,25 @@ export default function LoginPage() {
 
                 <Field>
                   <FieldLabel htmlFor="password">Contraseña</FieldLabel>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                  />
+                  <InputGroup>
+                    <InputGroupInput
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      required
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        type="button"
+                        size="icon-sm"
+                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        onClick={() => setShowPassword((prev) => !prev)}
+                      >
+                        {showPassword ? <EyeSlashIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
                 </Field>
 
                 {state.error && <p className="text-sm text-destructive">{state.error}</p>}
