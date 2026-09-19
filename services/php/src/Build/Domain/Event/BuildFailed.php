@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace App\AppManager\Application\Message;
+namespace App\Build\Domain\Event;
 
-/** Contrato entrante publicado por el BC Build (Go). Ver event-catalog.md. */
 final readonly class BuildFailed
 {
     public function __construct(
         public string $serviceName,
         public string $projectId,
+        public string $version,
         public string $errorMessage,
     ) {
     }

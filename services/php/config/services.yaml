@@ -40,6 +40,8 @@ services:
         public: true
     App\AppManager\Application\ApplicationService:
         public: true
+    App\Build\Application\ApplicationService:
+        public: true
 
 when@test:
     services:

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                       https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Build\Domain\Template" table="templates">
+        <id name="id" type="template_id" column="id">
+            <generator strategy="NONE"/>
+        </id>
+        <field name="language" type="string" column="language"/>
+        <field name="framework" type="string" column="framework"/>
+        <field name="jobImage" type="string" column="job_image"/>
+        <field name="paramSchema" type="param_schema" column="param_schema"/>
+    </entity>
+</doctrine-mapping>

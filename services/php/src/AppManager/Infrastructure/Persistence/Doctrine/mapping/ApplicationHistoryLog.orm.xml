@@ -13,5 +13,9 @@
         <field name="before" type="application_dto" column="before"/>
         <field name="after" type="application_dto" column="after"/>
         <field name="createdAt" type="datetime_immutable" column="created_at"/>
+
+        <indexes>
+            <index columns="application_id" name="idx_application_history_log_application_id"/>
+        </indexes>
     </entity>
 </doctrine-mapping>

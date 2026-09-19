@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\AppManager\Application\EventHandler;
 
 use App\AppManager\Application\ApplicationService;
-use App\AppManager\Application\Message\BuildSucceeded;
+use App\Build\Domain\Event\BuildSucceeded;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -16,8 +16,8 @@ final readonly class BuildSucceededHandler
     ) {
     }
 
-    public function __invoke(BuildSucceeded $message): void
+    public function __invoke(BuildSucceeded $event): void
     {
-        $this->applicationService->markBuildSucceeded($message->projectId, $message->serviceName, $message->image);
+        $this->applicationService->markBuildSucceeded($event->projectId, $event->serviceName, $event->image);
     }
 }

@@ -72,11 +72,23 @@ Todo mensaje publicado en Redis (vía Symfony Messenger en PHP, `go-redis` en Go
 - **Stream**: `podium.application-build-requested`
 - **Payload**: `serviceName`, `projectId`, `templateId`, `version`, `revision`, `repositoryUrl`, `provider`
 
+### `BuildJobRequested`
+- **Emite**: Build (`startBuildJob`)
+- **Consume**: lanzador de Kubernetes — componente Go mínimo, sin lógica de dominio, **diferido, no construido en esta sesión** (ver `build/discovery.md`, revisión 2026-09-19: se saca de BC Build quién llama a la API de Kubernetes, Build solo publica esto)
+- **Stream**: `podium.build-job-requested`
+- **Payload**: `buildJobId`, `jobImage` (del `Template` resuelto), `command` (siempre `[]` hoy — convención de `Template`, sin override), `envVars` (`SERVICE_NAME`, `PROJECT_ID`, `TEMPLATE_ID`, `VERSION`, `COMMIT_ID`, `REPOSITORY_URL`, `PROVIDER`, `BUILD_JOB_ID`)
+
+### `JobSucceeded` / `JobFailed`
+- **Emite**: el mismo lanzador Go diferido, traduciendo la señal de infraestructura "el Job de Kubernetes terminó" — **sin productor real todavía**
+- **Consume**: Build (`completeBuildJob`/`failBuildJob`) — hoy modelado como DTO local sin productor, mismo patrón que `BuildSucceeded`/`BuildFailed` en App Manager antes de que Build existiera
+- **Stream**: `podium.job-succeeded` / `podium.job-failed`
+- **Payload**: `buildJobId` + (éxito) imagen, `buildEnvVars`, `deployEnvVars`, `databaseDeclaration` leídos de `podium.yaml` por el propio Job / (fallo) `errorMessage`
+
 ### `BuildSucceeded`
 - **Emite**: Build (`completeBuildJob`)
 - **Consume**: App Manager (`markBuildSucceeded`) — dispara `ApplicationDeployRequested` al transicionar `Built → Deploying`
 - **Stream**: `podium.build-succeeded`
-- **Payload**: `serviceName`, `projectId`, `version`, referencia a la imagen (tag/digest), `deployEnvVars` (de `podium.yaml`), `databaseDeclaration` (de `podium.yaml`)
+- **Payload**: `serviceName`, `projectId`, `version`, referencia a la imagen (tag/digest), `deployEnvVars` (de `podium.yaml`, vía `JobSucceeded` — hoy siempre vacío), `databaseDeclaration` (ídem)
 
 ### `BuildFailed`
 - **Emite**: Build (`failBuildJob`)

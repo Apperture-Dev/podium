@@ -69,6 +69,16 @@ channels:
       ApplicationBuildRequested:
         $ref: '#/components/messages/ApplicationBuildRequested'
 
+  buildJobRequested:
+    address: podium.build-job-requested
+    description: >
+      Consumidor real todavía sin construir — un lanzador Go mínimo, sin
+      lógica de dominio, que solo crea el Job de Kubernetes (imagen, comando,
+      env vars). Ver build/model.md.
+    messages:
+      BuildJobRequested:
+        $ref: '#/components/messages/BuildJobRequested'
+
   buildSucceeded:
     address: podium.build-succeeded
     messages:
@@ -81,6 +91,23 @@ channels:
     messages:
       BuildFailed:
         $ref: '#/components/messages/BuildFailed'
+
+  jobSucceeded:
+    address: podium.job-succeeded
+    description: >
+      Sin productor real todavía (mismo motivo que buildJobRequested) — el
+      lanzador Go traduciría aquí la señal de infraestructura "el Job
+      terminó bien" una vez exista.
+    messages:
+      JobSucceeded:
+        $ref: '#/components/messages/JobSucceeded'
+
+  jobFailed:
+    address: podium.job-failed
+    description: Sin productor real todavía — ver jobSucceeded.
+    messages:
+      JobFailed:
+        $ref: '#/components/messages/JobFailed'
 
   applicationDeployRequested:
     address: podium.application-deploy-requested
@@ -171,6 +198,42 @@ operations:
     channel:
       $ref: '#/channels/applicationBuildRequested'
     summary: Build arranca un BuildJob nuevo.
+
+  publishBuildJobRequested:
+    action: send
+    channel:
+      $ref: '#/channels/buildJobRequested'
+    summary: BuildJob se crea (Pending) y pide que se lance el Job de Kubernetes.
+
+  consumeBuildJobRequested:
+    action: receive
+    channel:
+      $ref: '#/channels/buildJobRequested'
+    summary: Lanzador Kubernetes (Go, diferido) crea el Job con la imagen/comando/env vars dados.
+
+  publishJobSucceeded:
+    action: send
+    channel:
+      $ref: '#/channels/jobSucceeded'
+    summary: El Job de Kubernetes clonó, validó podium.yaml y construyó bien.
+
+  consumeJobSucceeded:
+    action: receive
+    channel:
+      $ref: '#/channels/jobSucceeded'
+    summary: Build marca el BuildJob como Succeeded y publica BuildSucceeded.
+
+  publishJobFailed:
+    action: send
+    channel:
+      $ref: '#/channels/jobFailed'
+    summary: El Job de Kubernetes falla, o podium.yaml no valida contra el paramSchema de Template.
+
+  consumeJobFailed:
+    action: receive
+    channel:
+      $ref: '#/channels/jobFailed'
+    summary: Build marca el BuildJob como Failed y publica BuildFailed.
 
   publishBuildSucceeded:
     action: send
@@ -294,6 +357,27 @@ components:
       payload:
         $ref: '#/components/schemas/Envelope_ApplicationBuildRequested'
 
+    BuildJobRequested:
+      name: BuildJobRequested
+      title: Build job requested
+      summary: Build pide que se lance un Job de Kubernetes con la imagen/comando/env vars dados.
+      payload:
+        $ref: '#/components/schemas/Envelope_BuildJobRequested'
+
+    JobSucceeded:
+      name: JobSucceeded
+      title: Job succeeded
+      summary: El Job de Kubernetes clonó, validó podium.yaml y construyó bien. Sin productor real todavía.
+      payload:
+        $ref: '#/components/schemas/Envelope_JobSucceeded'
+
+    JobFailed:
+      name: JobFailed
+      title: Job failed
+      summary: El Job de Kubernetes falló, o podium.yaml no valida contra el paramSchema. Sin productor real todavía.
+      payload:
+        $ref: '#/components/schemas/Envelope_JobFailed'
+
     BuildSucceeded:
       name: BuildSucceeded
       title: Build succeeded
@@ -410,6 +494,33 @@ components:
               $ref: '#/components/schemas/ApplicationBuildRequestedPayload'
           required: [payload]
 
+    Envelope_BuildJobRequested:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/BuildJobRequestedPayload'
+          required: [payload]
+
+    Envelope_JobSucceeded:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/JobSucceededPayload'
+          required: [payload]
+
+    Envelope_JobFailed:
+      allOf:
+        - $ref: '#/components/schemas/Envelope'
+        - type: object
+          properties:
+            payload:
+              $ref: '#/components/schemas/JobFailedPayload'
+          required: [payload]
+
     Envelope_BuildSucceeded:
       allOf:
         - $ref: '#/components/schemas/Envelope'
@@ -517,6 +628,47 @@ components:
         repositoryUrl: { type: string, format: uri }
         provider: { type: string, enum: [github] }
       required: [serviceName, projectId, templateId, version, revision, repositoryUrl, provider]
+
+    BuildJobRequestedPayload:
+      type: object
+      properties:
+        buildJobId: { type: string, format: uuid }
+        jobImage: { type: string, description: 'Imagen de contenedor (buildah) del Template resuelto' }
+        command:
+          type: array
+          items: { type: string }
+          description: 'Siempre vacío hoy (MVP) — el jobImage usa su propio entrypoint, convención de Template'
+        envVars:
+          type: object
+          additionalProperties: { type: string }
+          description: 'SERVICE_NAME, PROJECT_ID, TEMPLATE_ID, VERSION, COMMIT_ID, REPOSITORY_URL, PROVIDER, BUILD_JOB_ID'
+      required: [buildJobId, jobImage, command, envVars]
+
+    JobSucceededPayload:
+      type: object
+      description: Sin productor real todavía — lanzador Go diferido.
+      properties:
+        buildJobId: { type: string, format: uuid }
+        image: { type: string, description: 'Referencia a la imagen construida (tag/digest)' }
+        buildEnvVars:
+          type: object
+          additionalProperties: { type: string }
+          description: 'Uso propio del Job, no se reenvía'
+        deployEnvVars:
+          type: object
+          additionalProperties: { type: string }
+        databaseDeclaration:
+          type: object
+          additionalProperties: { type: string }
+      required: [buildJobId, image]
+
+    JobFailedPayload:
+      type: object
+      description: Sin productor real todavía — lanzador Go diferido.
+      properties:
+        buildJobId: { type: string, format: uuid }
+        errorMessage: { type: string, description: 'Yaml inválido o fallo de compilación — misma categoría' }
+      required: [buildJobId, errorMessage]
 
     BuildSucceededPayload:
       type: object

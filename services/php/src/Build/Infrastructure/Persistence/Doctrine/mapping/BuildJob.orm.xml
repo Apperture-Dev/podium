@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                       https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Build\Domain\BuildJob" table="build_jobs">
+        <id name="id" type="build_job_id" column="id">
+            <generator strategy="NONE"/>
+        </id>
+        <field name="teamId" type="string" column="team_id" length="36"/>
+        <field name="serviceName" type="string" column="service_name"/>
+        <field name="projectId" type="string" column="project_id" length="36"/>
+        <field name="templateId" type="string" column="template_id" length="36"/>
+        <field name="version" type="string" column="version"/>
+        <field name="commitId" type="string" column="commit_id"/>
+        <field name="repositoryUrl" type="string" column="repository_url"/>
+        <field name="provider" type="string" column="provider"/>
+        <field name="status" type="build_status" column="status"/>
+        <field name="image" type="string" column="image" nullable="true"/>
+        <field name="yamlSnapshot" type="build_yaml_snapshot" column="yaml_snapshot" nullable="true"/>
+        <field name="errorMessage" type="text" column="error_message" nullable="true"/>
+    </entity>
+</doctrine-mapping>

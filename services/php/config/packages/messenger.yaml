@@ -9,6 +9,11 @@ when@test:
                 application_registered: 'in-memory://'
                 application_build_requested: 'in-memory://'
                 application_deploy_requested: 'in-memory://'
+                build_job_requested: 'in-memory://'
+                job_succeeded: 'in-memory://'
+                job_failed: 'in-memory://'
+                build_succeeded: 'in-memory://'
+                build_failed_app_manager: 'in-memory://'
 
 framework:
     messenger:
@@ -76,6 +81,19 @@ framework:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options: { stream: 'podium.application-build-requested', group: 'build', consumer: 'build-1' }
 
+            # --- Build -> lanzador de Kubernetes (Go, diferido — sin consumidor real todavía) ---
+            build_job_requested:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.build-job-requested', group: 'unassigned', consumer: 'unassigned-1' }
+
+            # --- Lanzador de Kubernetes -> Build (Go, diferido — sin productor real todavía) ---
+            job_succeeded:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.job-succeeded', group: 'build', consumer: 'build-1' }
+            job_failed:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                options: { stream: 'podium.job-failed', group: 'build', consumer: 'build-1' }
+
             failed_events:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 options: { stream: 'podium.failed-events', group: 'failed', consumer: 'failed-1' }
@@ -91,8 +109,12 @@ framework:
             'App\AppManager\Domain\Event\ApplicationRegistered': application_registered
             'App\AppManager\Domain\Event\ApplicationBuildRequested': application_build_requested
             'App\AppManager\Domain\Event\ApplicationDeployRequested': application_deploy_requested
-            # Entrantes de Build/Deploy (Go) — sin clase compartible, DTO local (ver Application/Message/)
-            'App\AppManager\Application\Message\BuildSucceeded': build_succeeded
-            'App\AppManager\Application\Message\BuildFailed': build_failed_app_manager
+            'App\Build\Domain\Event\BuildJobRequested': build_job_requested
+            'App\Build\Domain\Event\BuildSucceeded': build_succeeded
+            'App\Build\Domain\Event\BuildFailed': build_failed_app_manager
+            # Entrantes del lanzador de Kubernetes (Go, diferido) — sin clase compartible, DTO local (ver Build/Application/Message/)
+            'App\Build\Application\Message\JobSucceeded': job_succeeded
+            'App\Build\Application\Message\JobFailed': job_failed
+            # Entrantes de Deploy (Go, no implementado todavía) — sin clase compartible, DTO local (ver Application/Message/)
             'App\AppManager\Application\Message\DeploySucceeded': deploy_succeeded
             'App\AppManager\Application\Message\DeployFailed': deploy_failed_app_manager

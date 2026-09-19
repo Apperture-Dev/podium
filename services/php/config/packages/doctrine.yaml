@@ -13,6 +13,11 @@ doctrine:
             application_state: App\AppManager\Infrastructure\Persistence\Doctrine\Type\ApplicationStateType
             application_history_log_id: App\AppManager\Infrastructure\Persistence\Doctrine\Type\UuidType
             application_dto: App\AppManager\Infrastructure\Persistence\Doctrine\Type\ApplicationDtoType
+            template_id: App\Build\Infrastructure\Persistence\Doctrine\Type\TemplateIdType
+            build_job_id: App\Build\Infrastructure\Persistence\Doctrine\Type\BuildJobIdType
+            build_status: App\Build\Infrastructure\Persistence\Doctrine\Type\BuildStatusType
+            param_schema: App\Build\Infrastructure\Persistence\Doctrine\Type\ParamSchemaType
+            build_yaml_snapshot: App\Build\Infrastructure\Persistence\Doctrine\Type\BuildYamlSnapshotType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
@@ -46,6 +51,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/AppManager/Infrastructure/Persistence/Doctrine/mapping'
                 prefix: 'App\AppManager\Domain'
                 alias: AppManager
+            Build:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Build/Infrastructure/Persistence/Doctrine/mapping'
+                prefix: 'App\Build\Domain'
+                alias: Build
 
 when@test:
     doctrine:

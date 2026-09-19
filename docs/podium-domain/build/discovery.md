@@ -17,7 +17,9 @@
 
 ## Mecanismo de ejecución (infraestructura, no dominio — capturado para no perderlo)
 
-Imagen de `jobImage` (buildah) → clona el repo en `commitId` → localiza `podium.yaml` → valida y ejecuta el build con las opciones de `BuildYamlSnapshot` → al terminar, señaliza el resultado. El Job se lanza contra la API de Kubernetes (`Job` nativo) — candidato a implementarse en Go por comodidad con el cliente de la API.
+Imagen de `jobImage` (buildah) → clona el repo en `commitId` → localiza `podium.yaml` → valida y ejecuta el build con las opciones de `BuildYamlSnapshot` → al terminar, señaliza el resultado. Todo esto corre **dentro** del propio Job de Kubernetes (el script de la imagen `jobImage`), nunca en el proceso de Build — eso ya estaba resuelto así desde el principio.
+
+**Revisión 2026-09-19 (split de responsabilidad, fuera de BC Build):** lo que sí estaba dentro de Build hasta ahora era *quién llama a la API de Kubernetes* para crear ese `Job` — y eso se saca del BC. Build (PHP, como todo lo demás) decide y publica `BuildJobRequested` (imagen, comando, variables de entorno) vía Redis Streams; un componente aparte, mínimo, en Go (**diferido — no se construye hoy**) consume ese evento y llama a la API de Kubernetes para crear el `Job`. Ese componente no tiene lógica de dominio propia — no sabe qué es un `Template` ni valida nada, solo traduce "lanza esto" en una llamada a la API. Deploy necesitará lo mismo simétricamente cuando se aborde (crear/actualizar un `Deployment`) — mismo componente Go, ampliado, o uno nuevo; decisión pendiente para cuando se toque Deploy. Motivo del split: mantener un solo lenguaje/convención DDD para toda la lógica de negocio (ya establecido en el resto del backend), y acotar quién tiene credenciales del clúster a un binario pequeño y auditable — el coste es un componente desplegable más, asumible porque desplegar en el clúster real es sencillo con ArgoCD.
 
 ## Aggregate Candidates
 
@@ -32,9 +34,9 @@ Imagen de `jobImage` (buildah) → clona el repo en `commitId` → localiza `pod
 
 | Action | Comportamiento | Produce |
 |---|---|---|
-| `startBuildJob` *(nombre provisional)* | Consume `ApplicationBuildRequested` → crea `BuildJob` (`Pending`/`Running`) con `serviceName`, `projectId`, `templateId`, `version`, `commitId` (= `revision`), `repositoryUrl`, `provider` (materializados del payload) → clona el repo en ese commit, lee `podium.yaml`, lo valida contra el `paramSchema` de `Template` → produce `BuildYamlSnapshot` → ejecuta el build | `BuildJob` creado |
-| `completeBuildJob` *(nombre provisional)* | Build exitoso → `BuildJob` → `Succeeded` | Publica `BuildSucceeded` |
-| `failBuildJob` *(nombre provisional)* | Build falla, o el yaml no valida contra el esquema de `Template` → `BuildJob` → `Failed` | Publica `BuildFailed` |
+| `startBuildJob` *(nombre provisional)* | Consume `ApplicationBuildRequested` → resuelve `Template` por `templateId` (para su `jobImage`) → crea `BuildJob` (`Pending`) con `serviceName`, `projectId`, `templateId`, `version`, `commitId` (= `revision`), `repositoryUrl`, `provider` (materializados del payload) | `BuildJob` creado, publica `BuildJobRequested` (imagen, comando, env vars — para el lanzador de Kubernetes, ver arriba) |
+| `completeBuildJob` *(nombre provisional)* | Traduce la señal de infraestructura "el Job clonó, validó `podium.yaml` y construyó bien" (imagen resultante + `BuildYamlSnapshot` leído por el propio Job) → `BuildJob` → `Succeeded` | Publica `BuildSucceeded` |
+| `failBuildJob` *(nombre provisional)* | Build falla, o el yaml no valida contra el esquema de `Template` (ambos decididos y señalizados por el propio Job, no por Build) → `BuildJob` → `Failed` | Publica `BuildFailed` |
 
 ## Value Object Candidates
 

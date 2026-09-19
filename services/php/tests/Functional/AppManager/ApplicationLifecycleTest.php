@@ -10,14 +10,14 @@ use App\AppManager\Application\EventHandler\BuildSucceededHandler;
 use App\AppManager\Application\EventHandler\DeployFailedHandler;
 use App\AppManager\Application\EventHandler\DeploySucceededHandler;
 use App\AppManager\Application\EventHandler\ServiceDiscoveredHandler;
-use App\AppManager\Application\Message\BuildFailed;
-use App\AppManager\Application\Message\BuildSucceeded;
 use App\AppManager\Application\Message\DeployFailed;
 use App\AppManager\Application\Message\DeploySucceeded;
 use App\AppManager\Domain\ApplicationState;
 use App\AppManager\Domain\Event\ApplicationBuildRequested;
 use App\AppManager\Domain\Event\ApplicationDeployRequested;
 use App\AppManager\Domain\Port\ApplicationRepository;
+use App\Build\Domain\Event\BuildFailed;
+use App\Build\Domain\Event\BuildSucceeded;
 use App\Project\Domain\Event\ApplicationSourceChanged;
 use App\Project\Domain\Event\ServiceDiscovered;
 use App\Project\Domain\Port\ProjectRepository;
@@ -71,7 +71,7 @@ final class ApplicationLifecycleTest extends KernelTestCase
         self::assertCount(1, $buildRequested);
         self::assertInstanceOf(ApplicationBuildRequested::class, $buildRequested[0]->getMessage());
 
-        ($this->buildSucceededHandler)(new BuildSucceeded('backend', $this->projectId, $application->version(), 'registry/backend:rev-1'));
+        ($this->buildSucceededHandler)(new BuildSucceeded('backend', $this->projectId, $application->version(), 'registry/backend:rev-1', [], []));
         $application = $this->applications->get($application->id());
         self::assertSame(ApplicationState::Deploying, $application->state());
 
@@ -89,7 +89,7 @@ final class ApplicationLifecycleTest extends KernelTestCase
         ($this->serviceDiscoveredHandler)(new ServiceDiscovered('frontend', $this->projectId, 'typescript', 'react'));
         ($this->sourceChangedHandler)(new ApplicationSourceChanged('frontend', $this->projectId, 'rev-1', 'https://github.com/team/repo', 'github'));
 
-        ($this->buildFailedHandler)(new BuildFailed('frontend', $this->projectId, 'compile error'));
+        ($this->buildFailedHandler)(new BuildFailed('frontend', $this->projectId, 'v1', 'compile error'));
 
         $application = $this->applications->findByProjectIdAndServiceName($this->projectId, 'frontend');
         self::assertSame(ApplicationState::BuildFailed, $application->state());
@@ -100,7 +100,7 @@ final class ApplicationLifecycleTest extends KernelTestCase
         ($this->serviceDiscoveredHandler)(new ServiceDiscovered('worker', $this->projectId, 'go', 'none'));
         ($this->sourceChangedHandler)(new ApplicationSourceChanged('worker', $this->projectId, 'rev-1', 'https://github.com/team/repo', 'github'));
         $application = $this->applications->findByProjectIdAndServiceName($this->projectId, 'worker');
-        ($this->buildSucceededHandler)(new BuildSucceeded('worker', $this->projectId, $application->version(), 'registry/worker:rev-1'));
+        ($this->buildSucceededHandler)(new BuildSucceeded('worker', $this->projectId, $application->version(), 'registry/worker:rev-1', [], []));
 
         ($this->deployFailedHandler)(new DeployFailed('worker', $this->projectId, 'health check failed'));
 
