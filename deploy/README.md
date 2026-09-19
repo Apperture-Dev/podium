@@ -83,19 +83,14 @@ A partir de aquí, ArgoCD sincroniza automáticamente cada push a `main` sobre `
 ## 4. Bump del tag de imagen (automático)
 
 `.gitlab-ci.yml` tiene un stage `deploy` (`deploy-php`/`deploy-web`) que, tras cada build en `main`,
-clona el propio repo, hace `kustomize edit set image` con el tag+digest recién publicado sobre
-`deploy/overlays/prod/kustomization.yaml`, y empuja el commit con `[skip ci]` (para no disparar una
-pipeline nueva) — mismo patrón que usa `craft-market` para su repo de gitops, adaptado a que aquí
-todo vive en un único repo. ArgoCD recoge ese commit y sincroniza solo.
+clona el propio repo con el `CI_JOB_TOKEN` del propio job, hace `kustomize edit set image` con el
+tag+digest recién publicado sobre `deploy/overlays/prod/kustomization.yaml`, y empuja el commit con
+`[skip ci]` (para no disparar una pipeline nueva) — mismo patrón que usa `craft-market` para su
+repo de gitops, adaptado a que aquí todo vive en un único repo. ArgoCD recoge ese commit y
+sincroniza solo.
 
-**Requiere configurar antes, a mano, en GitLab → Settings → CI/CD → Variables** (marcadas
-`Masked` + `Protected`):
-
-- `USERNAME` — el usuario asociado al token de abajo.
-- `DEPLOY_TOKEN` — un Project Access Token (o Personal Access Token) con scope `write_repository`.
-
-Y en **Settings → Repository → Protected branches**, confirmar que ese usuario/token tiene permiso
-de push sobre `main` (si `main` está protegida, "Allowed to push" debe incluir su rol).
+El proyecto ya tiene el permiso de push del job token configurado (Settings → CI/CD → Job token
+permissions) — no hace falta crear ninguna variable ni token adicional.
 
 Este job solo empuja al remoto de GitLab — el espejo de GitHub (`origin`) no se entera solo, hay
 que traer el commit a mano (`git pull origin-gitlab main` + `git push origin main`) antes de seguir

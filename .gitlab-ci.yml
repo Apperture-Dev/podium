@@ -29,15 +29,11 @@ stages:
       EOF
     - echo "$CI_REGISTRY_PASSWORD" | buildah login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
-# Job de deploy compartido: clona el propio repo con un token con permiso de
-# escritura (no el CI_JOB_TOKEN del checkout, que es de solo lectura), bumpea
-# el tag+digest de la imagen en deploy/overlays/prod y empuja el commit con
-# "[skip ci]" para no disparar una pipeline nueva sobre el mismo push.
-#
-# Requiere las variables de CI/CD (Settings > CI/CD > Variables, marcadas
-# masked+protected) "USERNAME" y "DEPLOY_TOKEN" — un Project Access Token con
-# scope write_repository, con permiso para empujar a "main" (revisar Settings
-# > Repository > Protected branches si main está protegida).
+# Job de deploy compartido: clona el propio repo con el CI_JOB_TOKEN (el
+# proyecto ya tiene permiso de push configurado para el job token — Settings
+# > CI/CD > Job token permissions), bumpea el tag+digest de la imagen en
+# deploy/overlays/prod y empuja el commit con "[skip ci]" para no disparar
+# una pipeline nueva sobre el mismo push.
 #
 # Nota: esto solo empuja al remoto de GitLab (origin-gitlab en local) — el
 # espejo de GitHub no se actualiza automáticamente, hay que traer el commit a
@@ -108,7 +104,7 @@ deploy-php:
     - job: build-php
       artifacts: true
   script:
-    - git clone "https://${USERNAME}:${DEPLOY_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git" deploy-repo
+    - git clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git" deploy-repo
     - cd deploy-repo/deploy/overlays/prod
     - |
       if [ -n "$IMAGE_DIGEST" ]; then
@@ -134,7 +130,7 @@ deploy-web:
     - job: build-web
       artifacts: true
   script:
-    - git clone "https://${USERNAME}:${DEPLOY_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git" deploy-repo
+    - git clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git" deploy-repo
     - cd deploy-repo/deploy/overlays/prod
     - |
       if [ -n "$IMAGE_DIGEST" ]; then
