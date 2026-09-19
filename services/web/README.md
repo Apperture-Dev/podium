@@ -2,18 +2,31 @@
 
 Next.js app for the Hostium dashboard ("Podium" is this repo's internal codename — see the root `CLAUDE.md`).
 
-## Known limitation: CORS
+## Real vs. mock
 
-`services/php` has no CORS configuration yet. The team/project registration forms
-in this app call `POST /api/teams` and `POST /api/projects` directly from the
-browser — those requests will fail with a CORS error until a separate change
-adds `nelmio/cors-bundle` (or equivalent) to the Symfony app. This is expected,
-not a bug in this app: see `design.md` in the `add-frontend-dashboard` OpenSpec
-change for the reasoning.
+Real, against `services/php`:
 
-Everything else in this app (project list, project detail, secrets) renders
-from static fixture data in `src/lib/fixtures/` — there's no backend to fail
-against for those screens yet.
+- Team list/registration, project list/registration, project detail (via its `Application`s).
+- Auth: see below.
+
+Still mock (static fixtures in `src/lib/fixtures/`): the Secrets screen — `services/php` has no Secrets endpoint yet (see `docs/podium-config/podium-yaml-guide.md` for the intended real design).
+
+## Auth (dev-only bridge)
+
+There's no accounts/login concept in Hostium (the hackathon plan explicitly rules it out), but `services/php`'s API now requires a JWT on every route. `src/app/api/auth/token/route.ts` is a Next.js Route Handler that authenticates as the seeded Keycloak `testuser` dev account (password grant) **server-side**, so the OAuth client secret never reaches the browser. The client calls that route, caches the token, and attaches it as `Authorization: Bearer …` to every request — see `src/lib/api/auth.ts` and `src/lib/api/client.ts`.
+
+This is a development convenience, not a real auth flow (no session, no login UI, no refresh tokens). Replacing it with real auth is out of scope for this change.
+
+Configure via env vars if your backend uses different values than the root README's defaults:
+
+```
+KEYCLOAK_BASE_URL=http://localhost:8091
+KEYCLOAK_REALM=podium
+KEYCLOAK_CLIENT_ID=podium-api
+KEYCLOAK_CLIENT_SECRET=podium-dev-secret
+KEYCLOAK_DEV_USERNAME=testuser
+KEYCLOAK_DEV_PASSWORD=testuser
+```
 
 ## Development
 
@@ -21,5 +34,4 @@ against for those screens yet.
 npm run dev
 ```
 
-Set `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8000`) to point
-at wherever `services/php` is actually running.
+Set `NEXT_PUBLIC_API_BASE_URL` (defaults to `http://localhost:8090`) to point at wherever `services/php` is actually running. Follow the root `README.md`'s "Cómo levantar el backend" section to start it, seed the `Template` catalog, and load fixture data (`app:fixtures:load`) so there's something to see.

@@ -3,69 +3,91 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { FIXTURE_PROJECTS, type ProjectSummary } from "@/lib/fixtures/projects";
-import {
-  FIXTURE_PROJECT_DETAILS,
-  type ProjectDetail,
-} from "@/lib/fixtures/project-detail";
+import { listProjects, getProject, type Project } from "@/lib/api/projects";
+import { listApplications, type Application } from "@/lib/api/applications";
+import { ApiError } from "@/lib/api/client";
+import { useTeam } from "@/lib/team-context";
+
+export type ProjectDetail = {
+  project: Project;
+  applications: Application[];
+};
 
 type ProjectsContextValue = {
-  projects: ProjectSummary[];
-  addProject: (project: ProjectSummary) => void;
-  getProjectDetail: (projectId: string) => ProjectDetail;
+  projects: Project[];
+  addProject: (project: Project) => void;
+  isLoading: boolean;
+  error: string | null;
+  loadProjectDetail: (
+    teamId: string,
+    projectId: string,
+  ) => Promise<ProjectDetail>;
 };
 
 const ProjectsContext = createContext<ProjectsContextValue | null>(null);
 
-/** A freshly-registered project has no mock detail yet — synthesize a minimal one instead of a dead end. */
-function synthesizeDetail(project: ProjectSummary): ProjectDetail {
-  return {
-    id: project.id,
-    status: "Construyendo",
-    version: "—",
-    frameworks: [],
-    updatedAt: project.updatedAt,
-    primaryDomain: project.domain,
-    deployments: [],
-  };
-}
-
 export function ProjectsProvider({ children }: { children: ReactNode }) {
-  const [projects, setProjects] = useState<ProjectSummary[]>(FIXTURE_PROJECTS);
-  const [details, setDetails] = useState<Record<string, ProjectDetail>>(
-    FIXTURE_PROJECT_DETAILS,
-  );
+  const { activeTeam } = useTeam();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetching on team change necessarily calls setState from the effect
+    // body — there's no external-system subscription to move this into.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (!activeTeam) {
+      setProjects([]);
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    listProjects(activeTeam.id)
+      .then((fetched) => {
+        if (!cancelled) {
+          setProjects(fetched);
+          setError(null);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError ? err.message : "No se pudieron cargar los proyectos.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    /* eslint-enable react-hooks/set-state-in-effect */
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTeam]);
 
   const value = useMemo<ProjectsContextValue>(
     () => ({
       projects,
-      addProject: (project: ProjectSummary) => {
+      addProject: (project: Project) => {
         setProjects((prev) => [project, ...prev]);
-        setDetails((prev) => ({
-          ...prev,
-          [project.id]: synthesizeDetail(project),
-        }));
       },
-      getProjectDetail: (projectId: string) =>
-        details[projectId] ??
-        synthesizeDetail(
-          projects.find((project) => project.id === projectId) ?? {
-            id: projectId,
-            teamId: "",
-            name: projectId,
-            description: "",
-            domain: "",
-            language: "",
-            version: "—",
-            updatedAt: new Date().toISOString(),
-          },
-        ),
+      isLoading,
+      error,
+      loadProjectDetail: async (teamId: string, projectId: string) => {
+        const cached = projects.find((p) => p.id === projectId);
+        const [project, applications] = await Promise.all([
+          cached ? Promise.resolve(cached) : getProject(teamId, projectId),
+          listApplications(teamId, projectId),
+        ]);
+        return { project, applications };
+      },
     }),
-    [projects, details],
+    [projects, isLoading, error],
   );
 
   return (

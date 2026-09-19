@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { registerProject } from "@/lib/api/projects";
+import { registerProject, getProject } from "@/lib/api/projects";
 import { ApiError } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
 import { useProjects } from "@/lib/projects-context";
@@ -47,16 +47,10 @@ export function ProjectForm() {
         repositoryUrl: repositoryUrl.trim(),
         teamId: activeTeam.id,
       });
-      addProject({
-        id,
-        teamId: activeTeam.id,
-        name: name.trim(),
-        description: "",
-        domain: "pendiente.hostium.app",
-        language: "—",
-        version: "—",
-        updatedAt: new Date().toISOString(),
-      });
+      // The register response is just { id } — fetch the authoritative
+      // record (it has the real `hash`, which we can't derive client-side).
+      const project = await getProject(activeTeam.id, id);
+      addProject(project);
       router.push(`/projects/${id}`);
     } catch (error) {
       setSubmitError(

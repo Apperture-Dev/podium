@@ -1,10 +1,7 @@
-/**
- * Base URL of the Symfony API. No CORS is configured on the backend yet
- * (separate change), so these calls will fail in a browser until it lands —
- * see design.md "Risks / Trade-offs".
- */
+import { getAccessToken } from "./auth";
+
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8090";
 
 export class ApiError extends Error {
   constructor(
@@ -16,16 +13,20 @@ export class ApiError extends Error {
   }
 }
 
-export async function postJson<TResponse>(
+async function authenticatedFetch(
   path: string,
-  body: unknown,
-): Promise<TResponse> {
+  init: RequestInit,
+  retrying = false,
+): Promise<Response> {
+  const token = await getAccessToken();
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      ...init,
+      headers: {
+        ...init.headers,
+        Authorization: `Bearer ${token}`,
+      },
     });
   } catch {
     throw new ApiError(
@@ -33,14 +34,43 @@ export async function postJson<TResponse>(
     );
   }
 
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    const message =
-      (payload && typeof payload === "object" && "error" in payload
-        ? String((payload as { error: unknown }).error)
-        : undefined) ?? `La solicitud falló (${response.status}).`;
-    throw new ApiError(message, response.status);
+  // Token may have expired between requests; refresh once and retry.
+  if (response.status === 401 && !retrying) {
+    await getAccessToken(true);
+    return authenticatedFetch(path, init, true);
   }
 
+  return response;
+}
+
+async function parseErrorMessage(response: Response): Promise<string> {
+  const payload = await response.json().catch(() => null);
+  return (
+    (payload && typeof payload === "object" && "error" in payload
+      ? String((payload as { error: unknown }).error)
+      : undefined) ?? `La solicitud falló (${response.status}).`
+  );
+}
+
+export async function getJson<TResponse>(path: string): Promise<TResponse> {
+  const response = await authenticatedFetch(path, { method: "GET" });
+  if (!response.ok) {
+    throw new ApiError(await parseErrorMessage(response), response.status);
+  }
+  return (await response.json()) as TResponse;
+}
+
+export async function postJson<TResponse>(
+  path: string,
+  body: unknown,
+): Promise<TResponse> {
+  const response = await authenticatedFetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new ApiError(await parseErrorMessage(response), response.status);
+  }
   return (await response.json()) as TResponse;
 }

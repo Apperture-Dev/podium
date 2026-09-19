@@ -6,11 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { registerTeam } from "@/lib/api/teams";
+import { getCurrentUserId } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { useTeam } from "@/lib/team-context";
-
-/** Placeholder until there's real auth — matches the hackathon plan's "no accounts" decision. */
-const CURRENT_USER_ID = "current-user";
 
 export function TeamForm() {
   const router = useRouter();
@@ -32,9 +30,10 @@ export function TeamForm() {
 
     setIsSubmitting(true);
     try {
+      const creatorUserId = await getCurrentUserId();
       const { id } = await registerTeam({
         name: name.trim(),
-        creatorUserId: CURRENT_USER_ID,
+        creatorUserId,
       });
       addTeam({ id, name: name.trim() });
       router.push("/");

@@ -8,77 +8,89 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { listTeams, type Team } from "@/lib/api/teams";
+import { ApiError } from "@/lib/api/client";
 
-export type Team = {
-  id: string;
-  name: string;
-};
-
-const STORAGE_KEY_TEAMS = "hostium.teams";
 const STORAGE_KEY_ACTIVE_TEAM = "hostium.activeTeamId";
-
-const DEFAULT_TEAMS: Team[] = [
-  { id: "team-a", name: "team-A" },
-  { id: "team-b", name: "team-B" },
-];
 
 type TeamContextValue = {
   teams: Team[];
   activeTeam: Team | null;
   setActiveTeamId: (teamId: string) => void;
   addTeam: (team: Team) => void;
+  isLoading: boolean;
+  error: string | null;
 };
 
 const TeamContext = createContext<TeamContextValue | null>(null);
 
 export function TeamProvider({ children }: { children: ReactNode }) {
-  const [teams, setTeams] = useState<Team[]>(DEFAULT_TEAMS);
-  const [activeTeamId, setActiveTeamIdState] = useState<string>(
-    DEFAULT_TEAMS[0].id,
-  );
-  const [hydrated, setHydrated] = useState(false);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [activeTeamId, setActiveTeamIdState] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // One-time hydration from localStorage after mount, so server and first
-    // client render match; the extra re-render this causes is the standard,
-    // unavoidable trade-off for reading browser storage in a Next.js app.
+    // Fetching on mount necessarily calls setState from the effect body —
+    // there's no external-system subscription to move this into.
     /* eslint-disable react-hooks/set-state-in-effect */
-    try {
-      const storedTeams = window.localStorage.getItem(STORAGE_KEY_TEAMS);
-      const storedActiveId = window.localStorage.getItem(
-        STORAGE_KEY_ACTIVE_TEAM,
-      );
-      if (storedTeams) setTeams(JSON.parse(storedTeams) as Team[]);
-      if (storedActiveId) setActiveTeamIdState(storedActiveId);
-    } catch {
-      // Private browsing / blocked storage: fall back to defaults silently.
-    } finally {
-      setHydrated(true);
-    }
+    let cancelled = false;
+    setIsLoading(true);
+    listTeams()
+      .then((fetchedTeams) => {
+        if (cancelled) return;
+        setTeams(fetchedTeams);
+        setError(null);
+        const storedActiveId = (() => {
+          try {
+            return window.localStorage.getItem(STORAGE_KEY_ACTIVE_TEAM);
+          } catch {
+            return null;
+          }
+        })();
+        const initialTeam =
+          fetchedTeams.find((team) => team.id === storedActiveId) ??
+          fetchedTeams[0] ??
+          null;
+        setActiveTeamIdState(initialTeam?.id ?? null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(
+          err instanceof ApiError ? err.message : "No se pudieron cargar los equipos.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
     /* eslint-enable react-hooks/set-state-in-effect */
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    if (!hydrated) return;
+  function setActiveTeamId(teamId: string) {
+    setActiveTeamIdState(teamId);
     try {
-      window.localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(teams));
-      window.localStorage.setItem(STORAGE_KEY_ACTIVE_TEAM, activeTeamId);
+      window.localStorage.setItem(STORAGE_KEY_ACTIVE_TEAM, teamId);
     } catch {
-      // Ignore storage failures; state still works for this session.
+      // Private browsing / blocked storage: active team just won't survive a reload.
     }
-  }, [teams, activeTeamId, hydrated]);
+  }
 
   const value = useMemo<TeamContextValue>(
     () => ({
       teams,
       activeTeam: teams.find((team) => team.id === activeTeamId) ?? null,
-      setActiveTeamId: setActiveTeamIdState,
+      setActiveTeamId,
       addTeam: (team: Team) => {
         setTeams((prev) => [...prev, team]);
-        setActiveTeamIdState(team.id);
+        setActiveTeamId(team.id);
       },
+      isLoading,
+      error,
     }),
-    [teams, activeTeamId],
+    [teams, activeTeamId, isLoading, error],
   );
 
   return (
