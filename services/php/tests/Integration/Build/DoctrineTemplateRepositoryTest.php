@@ -45,4 +45,21 @@ final class DoctrineTemplateRepositoryTest extends IntegrationTestCase
 
         $this->repository->get(TemplateId::generate());
     }
+
+    public function testFindByLanguageAndFrameworkReturnsTheMatchingTemplate(): void
+    {
+        $template = Template::define('nodejs', 'nestjs', 'ghcr.io/podium/build-runner:latest', []);
+        $this->repository->save($template);
+        $this->clearEntityManager();
+
+        $found = $this->repository->findByLanguageAndFramework('nodejs', 'nestjs');
+
+        self::assertNotNull($found);
+        self::assertTrue($found->id()->equals($template->id()));
+    }
+
+    public function testFindByLanguageAndFrameworkReturnsNullWhenNoneMatches(): void
+    {
+        self::assertNull($this->repository->findByLanguageAndFramework('cobol', 'jcl'));
+    }
 }

@@ -11,5 +11,7 @@ interface TemplateRepository
 {
     public function get(TemplateId $id): Template;
 
+    public function findByLanguageAndFramework(string $language, string $framework): ?Template;
+
     public function save(Template $template): void;
 }

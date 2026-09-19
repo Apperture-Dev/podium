@@ -22,6 +22,14 @@ final class DoctrineTemplateRepository implements TemplateRepository
             ?? throw new RuntimeException(\sprintf('Template "%s" not found.', $id->toString()));
     }
 
+    public function findByLanguageAndFramework(string $language, string $framework): ?Template
+    {
+        return $this->entityManager->getRepository(Template::class)->findOneBy([
+            'language' => $language,
+            'framework' => $framework,
+        ]);
+    }
+
     public function save(Template $template): void
     {
         $this->entityManager->persist($template);

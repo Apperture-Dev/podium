@@ -22,7 +22,7 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
     App\Project\Domain\Port\PodiumManifestReader: '@App\Project\Infrastructure\Manifest\NotImplementedPodiumManifestReader'
-    App\AppManager\Domain\Port\TemplateResolver: '@App\AppManager\Infrastructure\Template\NotImplementedTemplateResolver'
+    App\AppManager\Domain\Port\TemplateResolver: '@App\AppManager\Infrastructure\Template\DoctrineTemplateResolver'
 
     # Sin consumidor real todavía (nada type-hinta el puerto aún) — autowiring
     # no genera el alias interfaz→implementación por sí solo, y sin uso el
@@ -43,6 +43,12 @@ services:
     App\Build\Application\ApplicationService:
         public: true
     App\Deploy\Application\ApplicationService:
+        public: true
+
+    # Público para poder testear el adaptador real directamente en test —
+    # cuando@test aliasa TemplateResolver a InMemoryTemplateResolver, así
+    # que fetchear la interfaz en un test no llegaría a este adaptador.
+    App\AppManager\Infrastructure\Template\DoctrineTemplateResolver:
         public: true
 
 when@test:
