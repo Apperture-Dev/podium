@@ -23,13 +23,6 @@ type Config struct {
 	ChartName       string
 	ChartVersion    string
 	BaseDomain      string
-	// DefaultPort: el puerto real de cada app no tiene origen en ningún
-	// evento de dominio todavía (DeployAttemptRequested no lo lleva — ver
-	// deploy-launcher/README.md, "Pendiente real, sin resolver todavía").
-	// Hasta que esa cadena (Template -> BuildSucceeded ->
-	// ApplicationDeployRequested -> DeployAttemptRequested) se resuelva,
-	// todo tenant se despliega asumiendo este puerto único.
-	DefaultPort int64
 }
 
 // Build returns the ArgoCD Application (as unstructured data — Application
@@ -90,7 +83,7 @@ func valuesObject(req events.DeployAttemptRequested, cfg Config, repository, tag
 		"ingress": map[string]any{
 			"host": req.Hash + "." + cfg.BaseDomain,
 		},
-		"port": cfg.DefaultPort,
+		"port": req.Port,
 	}
 }
 

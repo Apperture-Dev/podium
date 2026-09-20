@@ -75,7 +75,7 @@ final class LoadFixturesCommand extends Command
     {
         $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs');
         $this->applications->markSourceChanged($projectId, $serviceName, 'a1b2c3d', 'https://github.com/podium-hackathon/marketplace-api', 'github');
-        $this->applications->markBuildSucceeded($projectId, $serviceName, 'registry.podium.dev/marketplace-api-backend:a1b2c3d', [], []);
+        $this->applications->markBuildSucceeded($projectId, $serviceName, 'registry.podium.dev/marketplace-api-backend:a1b2c3d', 3000, [], []);
         $this->applications->markDeploySucceeded($projectId, $serviceName);
     }
 
@@ -96,7 +96,7 @@ final class LoadFixturesCommand extends Command
     {
         $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs');
         $this->applications->markSourceChanged($projectId, $serviceName, 'd4e5f6a', 'https://github.com/podium-hackathon/analytics-service', 'github');
-        $this->applications->markBuildSucceeded($projectId, $serviceName, 'registry.podium.dev/analytics-service-api:d4e5f6a', [], []);
+        $this->applications->markBuildSucceeded($projectId, $serviceName, 'registry.podium.dev/analytics-service-api:d4e5f6a', 3000, [], []);
         $this->applications->markDeployFailed($projectId, $serviceName);
     }
 }

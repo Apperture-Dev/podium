@@ -34,6 +34,7 @@ final class SeedTemplatesCommand extends Command
             'nodejs',
             'nestjs',
             'ghcr.io/apperture-dev/podium-build-runner:latest',
+            3000,
             [],
         );
 
@@ -43,6 +44,7 @@ final class SeedTemplatesCommand extends Command
             'nodejs',
             'nextjs',
             'ghcr.io/apperture-dev/podium-build-runner:latest',
+            3000,
             [],
         );
 

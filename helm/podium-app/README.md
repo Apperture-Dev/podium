@@ -22,11 +22,10 @@ port: 3000             # puerto del contenedor — default a la convención Node
                         # sobreescribible por values
 ```
 
-**Pendiente real, sin resolver todavía**: `port` no tiene ningún origen en la cadena de dominio
-(`DeclaredService`, `BuildSucceeded`, `ApplicationDeployRequested`, `DeployAttemptRequested` — ni
-`Template` guarda un puerto por framework). El chart ya lo soporta como value, pero
-`services/deploy-launcher` no tiene de dónde sacar un valor real todavía y usa el default de
-`3000` — ver la discusión pendiente en `deploy/deploy-launcher/README.md`.
+`port` tiene origen en `Template.defaultPort` (Build BC, convención por lenguaje/framework — igual
+que `jobImage`) y viaja sin tocar por `BuildSucceeded` → `ApplicationDeployRequested` →
+`DeployAttemptRequested` hasta `services/deploy-launcher`, que lo pasa directo a este value — ver
+`deploy/deploy-launcher/README.md`.
 
 TLS: `apperture-wildcard-tls` (cubre `*.apperture.dev`, un solo nivel — el host de un tenant es
 `{hash}.apperture.dev`, exactamente ese nivel) — ya reflejado por Reflector en cualquier namespace

@@ -31,25 +31,15 @@ primera versión) — automatizarlo con un job `deploy-podium-app-chart` que hag
 `deploy-php`/`deploy-web` (bump + commit `[skip ci]` tras el `helm push`) es un follow-up, no algo
 que se haya construido todavía.
 
-## `DEFAULT_PORT` — hueco real de dominio, sin resolver
+## Puerto del contenedor — convención sobre configuración, no config del lanzador
 
-El puerto en el que escucha el contenedor de cada tenant no tiene origen en ningún punto de la
-cadena de eventos: ni `DeclaredService` (Project), ni `BuildSucceeded` (Build), ni
-`ApplicationDeployRequested` (App Manager), ni `DeployAttemptRequested` (Deploy) lo llevan — y
-`Template` tampoco guarda un puerto por lenguaje/framework, a pesar de que sí guarda `jobImage`
-para la convención de build. `docs/podium-config/podium-yaml-guide.md` dice explícitamente "no hay
-campo de comando, cada Template asume la convención de su lenguaje" — el mismo principio aplicaría
-al puerto (Node/NestJS/Next.js: `3000`; un futuro template PHP/FrankenPHP: `80`), pero hoy nadie lo
-ha modelado así.
-
-**Mientras tanto**: `DEFAULT_PORT` (env var, mismo criterio que `IMAGE_REGISTRY`/`CHART_VERSION` —
-config del lanzador, nunca del evento) fija **un único puerto para todos los tenants**, sea cual
-sea su framework real. Funciona para la convención Node actual porque es la única que existe hoy,
-pero es una simplificación conocida, no una solución — en cuanto haya un segundo template con un
-puerto distinto, esto rompe en silencio (el `Deployment` se crea, pero el health-check de ArgoCD
-nunca verá el Pod sano). Resolverlo de verdad significa añadir `port` a `Template` y dejar que
-fluya por las cuatro capas hasta aquí — cambio deliberadamente no hecho en esta sesión, fuera del
-alcance de "lanzador de ArgoCD + chart", pendiente de su propia decisión.
+El puerto en el que escucha el contenedor de cada tenant viaja en `DeployAttemptRequested.port`,
+con origen en `Template.defaultPort` (Build BC) — la misma convención por lenguaje/framework que ya
+usaba `jobImage` (`docs/podium-config/podium-yaml-guide.md`: "no hay campo de comando, cada
+Template asume la convención de su lenguaje"; hoy Node/NestJS/Next.js → `3000`, un futuro template
+PHP/FrankenPHP → `80`). Fluye sin tocar por `BuildSucceeded` → `ApplicationDeployRequested` →
+`DeployAttemptRequested` hasta este lanzador, que lo usa directo (`internal/argospec.Build` lee
+`req.Port`) — ya no hay ningún `DEFAULT_PORT`/config propia del lanzador para esto.
 
 ## Dependencia de la Fase A (chart + registro OCI)
 

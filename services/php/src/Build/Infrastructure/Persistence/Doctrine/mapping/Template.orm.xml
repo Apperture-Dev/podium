@@ -11,6 +11,7 @@
         <field name="language" type="string" column="language"/>
         <field name="framework" type="string" column="framework"/>
         <field name="jobImage" type="string" column="job_image"/>
+        <field name="defaultPort" type="integer" column="default_port"/>
         <field name="paramSchema" type="param_schema" column="param_schema"/>
     </entity>
 </doctrine-mapping>

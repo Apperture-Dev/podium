@@ -15,21 +15,22 @@ final class Template
         private readonly string $language,
         private readonly string $framework,
         private readonly string $jobImage,
+        private readonly int $defaultPort,
         /** @var array<string, ParamField> */
         private readonly array $paramSchema,
     ) {
     }
 
     /** @param array<string, ParamField> $paramSchema */
-    public static function define(string $language, string $framework, string $jobImage, array $paramSchema): self
+    public static function define(string $language, string $framework, string $jobImage, int $defaultPort, array $paramSchema): self
     {
-        return new self(TemplateId::generate(), $language, $framework, $jobImage, $paramSchema);
+        return new self(TemplateId::generate(), $language, $framework, $jobImage, $defaultPort, $paramSchema);
     }
 
     /** @param array<string, ParamField> $paramSchema */
-    public static function rehydrate(TemplateId $id, string $language, string $framework, string $jobImage, array $paramSchema): self
+    public static function rehydrate(TemplateId $id, string $language, string $framework, string $jobImage, int $defaultPort, array $paramSchema): self
     {
-        return new self($id, $language, $framework, $jobImage, $paramSchema);
+        return new self($id, $language, $framework, $jobImage, $defaultPort, $paramSchema);
     }
 
     public function id(): TemplateId
@@ -50,6 +51,11 @@ final class Template
     public function jobImage(): string
     {
         return $this->jobImage;
+    }
+
+    public function defaultPort(): int
+    {
+        return $this->defaultPort;
     }
 
     /** @return array<string, ParamField> */

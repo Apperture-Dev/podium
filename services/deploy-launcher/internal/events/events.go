@@ -35,6 +35,7 @@ type DeployAttemptRequested struct {
 	Hash                string      `json:"hash"`
 	ServiceName         string      `json:"serviceName"`
 	Image               string      `json:"image"`
+	Port                int64       `json:"port"`
 	EnvVars             FlexibleMap `json:"envVars"`
 	DatabaseDeclaration FlexibleMap `json:"databaseDeclaration"`
 }

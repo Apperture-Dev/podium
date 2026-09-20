@@ -72,13 +72,14 @@ final class ApplicationLifecycleTest extends KernelTestCase
         self::assertCount(1, $buildRequested);
         self::assertInstanceOf(ApplicationBuildRequested::class, $buildRequested[0]->getMessage());
 
-        ($this->buildSucceededHandler)(new BuildSucceeded('backend', $this->projectId, $application->version(), 'registry/backend:rev-1', [], []));
+        ($this->buildSucceededHandler)(new BuildSucceeded('backend', $this->projectId, $application->version(), 'registry/backend:rev-1', 3000, [], []));
         $application = $this->applications->get($application->id());
         self::assertSame(ApplicationState::Deploying, $application->state());
 
         $deployRequested = $this->envelopesOn('application_deploy_requested');
         self::assertCount(1, $deployRequested);
         self::assertInstanceOf(ApplicationDeployRequested::class, $deployRequested[0]->getMessage());
+        self::assertSame(3000, $deployRequested[0]->getMessage()->port);
 
         ($this->deploySucceededHandler)(new DeploySucceeded('backend', $this->projectId, $application->version()));
         $application = $this->applications->get($application->id());
@@ -101,7 +102,7 @@ final class ApplicationLifecycleTest extends KernelTestCase
         ($this->serviceDiscoveredHandler)(new ServiceDiscovered('worker', $this->projectId, 'go', 'none'));
         ($this->sourceChangedHandler)(new ApplicationSourceChanged('worker', $this->projectId, 'rev-1', 'https://github.com/team/repo', 'github'));
         $application = $this->applications->findByProjectIdAndServiceName($this->projectId, 'worker');
-        ($this->buildSucceededHandler)(new BuildSucceeded('worker', $this->projectId, $application->version(), 'registry/worker:rev-1', [], []));
+        ($this->buildSucceededHandler)(new BuildSucceeded('worker', $this->projectId, $application->version(), 'registry/worker:rev-1', 3000, [], []));
 
         ($this->deployFailedHandler)(new DeployFailed('worker', $this->projectId, $application->version(), 'health check failed', null));
 

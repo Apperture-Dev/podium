@@ -26,7 +26,7 @@ final readonly class ApplicationService
      * @param array<string, string> $deployEnvVars
      * @param array<string, string> $databaseDeclaration
      */
-    public function requestDeploy(string $serviceName, string $projectId, string $version, string $image, array $deployEnvVars, array $databaseDeclaration): void
+    public function requestDeploy(string $serviceName, string $projectId, string $version, string $image, int $port, array $deployEnvVars, array $databaseDeclaration): void
     {
         $project = $this->projects->get(ProjectId::fromString($projectId));
 
@@ -37,6 +37,7 @@ final readonly class ApplicationService
             $project->hash()->toString(),
             $version,
             $image,
+            $port,
             $deployEnvVars,
             $databaseDeclaration,
         );

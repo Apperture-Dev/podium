@@ -24,7 +24,7 @@ final class DoctrineTemplateRepositoryTest extends IntegrationTestCase
 
     public function testItCanPersistAndRetrieveById(): void
     {
-        $template = Template::define('node', 'express', 'ghcr.io/podium/buildah-node:latest', [
+        $template = Template::define('node', 'express', 'ghcr.io/podium/buildah-node:latest', 3000, [
             'startCommand' => new ParamField('string', false, '^[a-z0-9 ]+$'),
         ]);
 
@@ -36,6 +36,7 @@ final class DoctrineTemplateRepositoryTest extends IntegrationTestCase
         self::assertTrue($retrieved->id()->equals($template->id()));
         self::assertSame('node', $retrieved->language());
         self::assertSame('ghcr.io/podium/buildah-node:latest', $retrieved->jobImage());
+        self::assertSame(3000, $retrieved->defaultPort());
         self::assertEquals(new ParamField('string', false, '^[a-z0-9 ]+$'), $retrieved->paramSchema()['startCommand']);
     }
 
@@ -48,7 +49,7 @@ final class DoctrineTemplateRepositoryTest extends IntegrationTestCase
 
     public function testFindByLanguageAndFrameworkReturnsTheMatchingTemplate(): void
     {
-        $template = Template::define('nodejs', 'nestjs', 'ghcr.io/podium/build-runner:latest', []);
+        $template = Template::define('nodejs', 'nestjs', 'ghcr.io/podium/build-runner:latest', 3000, []);
         $this->repository->save($template);
         $this->clearEntityManager();
 

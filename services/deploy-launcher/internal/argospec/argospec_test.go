@@ -16,7 +16,6 @@ func testConfig() argospec.Config {
 		ChartName:       "podium-app",
 		ChartVersion:    "0.1.0",
 		BaseDomain:      "apperture.dev",
-		DefaultPort:     3000,
 	}
 }
 
@@ -26,6 +25,7 @@ func testRequest() events.DeployAttemptRequested {
 		Hash:            "abc12345",
 		ServiceName:     "backend",
 		Image:           "registry.apperture.dev/team-a-backend:v1",
+		Port:            8080,
 	}
 }
 
@@ -99,19 +99,17 @@ func TestBuildSetsValuesObjectFromTheRequest(t *testing.T) {
 	}
 }
 
-// El puerto real de cada app no tiene origen todavía en ningún evento de
-// dominio (DeployAttemptRequested no lo lleva — ver deploy-launcher/README.md,
-// "Pendiente real, sin resolver todavía") — hasta que se resuelva esa
-// pregunta más amplia, se usa el default del propio lanzador, igual que
-// IMAGE_REGISTRY. Este test documenta ese comportamiento provisional, no lo
-// esconde.
-func TestBuildUsesTheLauncherDefaultPortSinceTheEventDoesNotCarryOne(t *testing.T) {
+// El puerto viaja en DeployAttemptRequested (con origen en
+// Template.defaultPort, convención por lenguaje/framework — ver
+// services/php/src/Build/Domain/Template.php), no en config propia del
+// lanzador.
+func TestBuildUsesThePortFromTheRequest(t *testing.T) {
 	app := argospec.Build(testRequest(), testConfig())
 
 	values, _, _ := unstructured.NestedMap(app.Object, "spec", "source", "helm", "valuesObject")
 
-	if values["port"] != int64(3000) {
-		t.Fatalf("got values.port %v (%T), want 3000", values["port"], values["port"])
+	if values["port"] != int64(8080) {
+		t.Fatalf("got values.port %v (%T), want 8080", values["port"], values["port"])
 	}
 }
 

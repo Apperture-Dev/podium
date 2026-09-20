@@ -48,6 +48,7 @@ final class DeployAttempt
         string $hash,
         string $version,
         string $image,
+        int $port,
         array $deployEnvVars,
         array $databaseDeclaration,
     ): self {
@@ -68,6 +69,7 @@ final class DeployAttempt
             $hash,
             $serviceName,
             $image,
+            $port,
             $deployEnvVars,
             $databaseDeclaration,
         ));

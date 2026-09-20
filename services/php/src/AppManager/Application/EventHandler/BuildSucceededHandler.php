@@ -18,6 +18,6 @@ final readonly class BuildSucceededHandler
 
     public function __invoke(BuildSucceeded $event): void
     {
-        $this->applicationService->markBuildSucceeded($event->projectId, $event->serviceName, $event->image, $event->deployEnvVars, $event->databaseDeclaration);
+        $this->applicationService->markBuildSucceeded($event->projectId, $event->serviceName, $event->image, $event->port, $event->deployEnvVars, $event->databaseDeclaration);
     }
 }

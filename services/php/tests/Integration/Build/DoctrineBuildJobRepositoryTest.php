@@ -39,7 +39,7 @@ final class DoctrineBuildJobRepositoryTest extends IntegrationTestCase
     public function testCompletingABuildJobPersistsTheYamlSnapshot(): void
     {
         $buildJob = BuildJob::request('team-1', 'backend', 'project-1', 'template-1', 'ghcr.io/podium/buildah-node:latest', 'v1', 'rev-1', 'https://github.com/team/repo', 'github');
-        $buildJob->completeBuildJob('registry/backend:rev-1', [], ['API_URL' => 'https://x'], []);
+        $buildJob->completeBuildJob('registry/backend:rev-1', 3000, [], ['API_URL' => 'https://x'], []);
         $this->repository->save($buildJob);
         $this->clearEntityManager();
 

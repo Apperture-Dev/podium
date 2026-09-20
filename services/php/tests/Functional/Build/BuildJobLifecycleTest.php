@@ -50,7 +50,7 @@ final class BuildJobLifecycleTest extends KernelTestCase
         $this->projectId = $project->id()->toString();
 
         $templates = $container->get(TemplateRepository::class);
-        $template = Template::define('node', 'express', 'ghcr.io/podium/buildah-node:latest', []);
+        $template = Template::define('node', 'express', 'ghcr.io/podium/buildah-node:latest', 3000, []);
         $templates->save($template);
         $this->templateId = $template->id()->toString();
     }
@@ -73,6 +73,7 @@ final class BuildJobLifecycleTest extends KernelTestCase
         self::assertCount(1, $succeeded);
         self::assertInstanceOf(BuildSucceeded::class, $succeeded[0]->getMessage());
         self::assertSame('registry/backend:rev-1', $succeeded[0]->getMessage()->image);
+        self::assertSame(3000, $succeeded[0]->getMessage()->port);
     }
 
     public function testBuildFailsAndPublishesBuildFailed(): void

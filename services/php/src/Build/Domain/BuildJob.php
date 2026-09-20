@@ -115,13 +115,13 @@ final class BuildJob
      *
      * @return list<object>
      */
-    public function completeBuildJob(string $image, array $buildEnvVars, array $deployEnvVars, array $databaseDeclaration): array
+    public function completeBuildJob(string $image, int $port, array $buildEnvVars, array $deployEnvVars, array $databaseDeclaration): array
     {
         $this->status = BuildStatus::Succeeded;
         $this->image = $image;
         $this->yamlSnapshot = new BuildYamlSnapshot($buildEnvVars, $deployEnvVars, $databaseDeclaration);
 
-        $this->record(new BuildSucceeded($this->serviceName, $this->projectId, $this->version, $image, $deployEnvVars, $databaseDeclaration));
+        $this->record(new BuildSucceeded($this->serviceName, $this->projectId, $this->version, $image, $port, $deployEnvVars, $databaseDeclaration));
 
         return $this->releaseEvents();
     }

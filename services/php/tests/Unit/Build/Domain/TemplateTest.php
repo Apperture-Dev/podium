@@ -16,7 +16,7 @@ final class TemplateTest extends UnitTestCase
     {
         parent::setUp();
 
-        $this->template = Template::define('node', 'express', 'ghcr.io/podium/buildah-node:latest', [
+        $this->template = Template::define('node', 'express', 'ghcr.io/podium/buildah-node:latest', 3000, [
             'startCommand' => new ParamField('string', false, '^[a-z0-9 ]+$'),
         ]);
     }
@@ -26,6 +26,7 @@ final class TemplateTest extends UnitTestCase
         self::assertSame('node', $this->template->language());
         self::assertSame('express', $this->template->framework());
         self::assertSame('ghcr.io/podium/buildah-node:latest', $this->template->jobImage());
+        self::assertSame(3000, $this->template->defaultPort());
         self::assertArrayHasKey('startCommand', $this->template->paramSchema());
     }
 

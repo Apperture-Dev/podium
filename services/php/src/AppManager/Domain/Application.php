@@ -116,12 +116,12 @@ final class Application
      * @param array<string, string> $deployEnvVars
      * @param array<string, string> $databaseDeclaration
      */
-    public function markBuildSucceeded(string $image, array $deployEnvVars, array $databaseDeclaration): array
+    public function markBuildSucceeded(string $image, int $port, array $deployEnvVars, array $databaseDeclaration): array
     {
         $before = $this->toDTO();
         $this->state = ApplicationState::Deploying;
 
-        $this->record(new ApplicationDeployRequested($this->serviceName, $this->projectId, $this->version, $image, $deployEnvVars, $databaseDeclaration));
+        $this->record(new ApplicationDeployRequested($this->serviceName, $this->projectId, $this->version, $image, $port, $deployEnvVars, $databaseDeclaration));
         $this->logMutation($before);
 
         return $this->releaseEvents();

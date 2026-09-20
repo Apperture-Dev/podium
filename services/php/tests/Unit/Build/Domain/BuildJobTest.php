@@ -51,7 +51,7 @@ final class BuildJobTest extends UnitTestCase
 
     public function testCompleteBuildJobMovesToSucceededAndPublishesBuildSucceeded(): void
     {
-        $events = $this->buildJob->completeBuildJob('registry/backend:rev-1', ['NPM_TOKEN' => 'x'], ['API_URL' => 'https://x'], []);
+        $events = $this->buildJob->completeBuildJob('registry/backend:rev-1', 3000, ['NPM_TOKEN' => 'x'], ['API_URL' => 'https://x'], []);
 
         self::assertSame(BuildStatus::Succeeded, $this->buildJob->status());
         self::assertSame('registry/backend:rev-1', $this->buildJob->image());
@@ -59,6 +59,7 @@ final class BuildJobTest extends UnitTestCase
         self::assertCount(1, $events);
         self::assertInstanceOf(BuildSucceeded::class, $events[0]);
         self::assertSame('registry/backend:rev-1', $events[0]->image);
+        self::assertSame(3000, $events[0]->port);
         self::assertSame(['API_URL' => 'https://x'], $events[0]->deployEnvVars);
     }
 

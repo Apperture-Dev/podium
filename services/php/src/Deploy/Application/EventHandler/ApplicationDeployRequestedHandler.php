@@ -23,6 +23,7 @@ final readonly class ApplicationDeployRequestedHandler
             $event->projectId,
             $event->version,
             $event->image,
+            $event->port,
             $event->deployEnvVars,
             $event->databaseDeclaration,
         );

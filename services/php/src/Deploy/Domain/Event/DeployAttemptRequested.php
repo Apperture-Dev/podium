@@ -15,6 +15,7 @@ final readonly class DeployAttemptRequested
         public string $hash,
         public string $serviceName,
         public string $image,
+        public int $port,
         public array $envVars,
         public array $databaseDeclaration,
     ) {

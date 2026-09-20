@@ -28,7 +28,7 @@ final class DoctrineTemplateResolverTest extends IntegrationTestCase
 
     public function testResolvesTheTemplateIdForARegisteredLanguageAndFramework(): void
     {
-        $template = Template::define('nodejs', 'nestjs', 'ghcr.io/podium/build-runner:latest', []);
+        $template = Template::define('nodejs', 'nestjs', 'ghcr.io/podium/build-runner:latest', 3000, []);
         $this->templates->save($template);
         $this->clearEntityManager();
 

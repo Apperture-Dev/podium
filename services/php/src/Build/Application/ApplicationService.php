@@ -26,9 +26,9 @@ final readonly class ApplicationService
     }
 
     /** @param array<string, ParamField> $paramSchema */
-    public function defineTemplate(string $language, string $framework, string $jobImage, array $paramSchema): string
+    public function defineTemplate(string $language, string $framework, string $jobImage, int $defaultPort, array $paramSchema): string
     {
-        $template = Template::define($language, $framework, $jobImage, $paramSchema);
+        $template = Template::define($language, $framework, $jobImage, $defaultPort, $paramSchema);
         $this->templates->save($template);
 
         return $template->id()->toString();
@@ -61,8 +61,9 @@ final readonly class ApplicationService
     public function completeBuildJob(string $buildJobId, string $image, array $buildEnvVars, array $deployEnvVars, array $databaseDeclaration): void
     {
         $buildJob = $this->buildJobs->get(BuildJobId::fromString($buildJobId));
+        $template = $this->templates->get(TemplateId::fromString($buildJob->templateId()));
 
-        $events = $buildJob->completeBuildJob($image, $buildEnvVars, $deployEnvVars, $databaseDeclaration);
+        $events = $buildJob->completeBuildJob($image, $template->defaultPort(), $buildEnvVars, $deployEnvVars, $databaseDeclaration);
 
         $this->buildJobs->save($buildJob);
         $this->dispatchAll($events);

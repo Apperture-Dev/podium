@@ -15,6 +15,7 @@ final readonly class BuildSucceeded
         public string $projectId,
         public string $version,
         public string $image,
+        public int $port,
         public array $deployEnvVars,
         public array $databaseDeclaration,
     ) {

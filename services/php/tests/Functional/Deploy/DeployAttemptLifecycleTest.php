@@ -51,13 +51,14 @@ final class DeployAttemptLifecycleTest extends KernelTestCase
 
     public function testDeploySucceedsAndPublishesDeployAttemptRequestedThenDeploySucceeded(): void
     {
-        ($this->applicationDeployRequestedHandler)(new ApplicationDeployRequested('backend', $this->projectId, 'v1', 'registry/backend:rev-1', ['API_URL' => 'https://x'], []));
+        ($this->applicationDeployRequestedHandler)(new ApplicationDeployRequested('backend', $this->projectId, 'v1', 'registry/backend:rev-1', 3000, ['API_URL' => 'https://x'], []));
 
         $requested = $this->envelopesOn('deploy_attempt_requested');
         self::assertCount(1, $requested);
         self::assertInstanceOf(DeployAttemptRequested::class, $requested[0]->getMessage());
         self::assertSame($this->projectHash, $requested[0]->getMessage()->hash);
         self::assertSame('backend', $requested[0]->getMessage()->serviceName);
+        self::assertSame(3000, $requested[0]->getMessage()->port);
         $deployAttemptId = $requested[0]->getMessage()->deployAttemptId;
 
         ($this->healthCheckSucceededHandler)(new HealthCheckSucceeded($deployAttemptId));
@@ -72,7 +73,7 @@ final class DeployAttemptLifecycleTest extends KernelTestCase
 
     public function testDeployFailsAndPublishesDeployFailed(): void
     {
-        ($this->applicationDeployRequestedHandler)(new ApplicationDeployRequested('backend', $this->projectId, 'v1', 'registry/backend:rev-1', [], []));
+        ($this->applicationDeployRequestedHandler)(new ApplicationDeployRequested('backend', $this->projectId, 'v1', 'registry/backend:rev-1', 3000, [], []));
 
         $requested = $this->envelopesOn('deploy_attempt_requested');
         $deployAttemptId = $requested[0]->getMessage()->deployAttemptId;

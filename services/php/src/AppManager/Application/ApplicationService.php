@@ -61,11 +61,11 @@ final readonly class ApplicationService
      * @param array<string, string> $deployEnvVars
      * @param array<string, string> $databaseDeclaration
      */
-    public function markBuildSucceeded(string $projectId, string $serviceName, string $image, array $deployEnvVars, array $databaseDeclaration): void
+    public function markBuildSucceeded(string $projectId, string $serviceName, string $image, int $port, array $deployEnvVars, array $databaseDeclaration): void
     {
         $application = $this->getByProjectIdAndServiceName($projectId, $serviceName);
 
-        $events = $application->markBuildSucceeded($image, $deployEnvVars, $databaseDeclaration);
+        $events = $application->markBuildSucceeded($image, $port, $deployEnvVars, $databaseDeclaration);
 
         $this->applications->save($application);
         $this->dispatchAll($events);
