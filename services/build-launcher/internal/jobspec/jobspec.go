@@ -55,6 +55,14 @@ func Build(req events.BuildJobRequested, cfg Config) *batchv1.Job {
 				},
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
+					// req.JobImage vive en el registro privado de GitLab (mismo
+					// registro que el resto de imágenes de este repo) — sin esto
+					// el kubelet no puede tirar de ella (ImagePullBackOff). Fijo,
+					// no viene de Config: es el mismo secret que ya usa cualquier
+					// otro Deployment/CronJob de este clúster, nunca varía.
+					ImagePullSecrets: []corev1.LocalObjectReference{
+						{Name: "gitlab-token-auth"},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:    "build",
