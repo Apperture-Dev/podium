@@ -49,12 +49,33 @@ out = {
 }
 json.dump(out, sys.stdout)
 " | kubectl apply -f -
+
+# Token de GitHub para el detector de cambios (app:appsource:poll) — ver
+# más abajo cómo conseguirlo.
+kubectl create secret generic github-token -n hostium \
+  --from-literal=token=<pegar aquí>
 ```
 
 `postgres-app` (credenciales del rol `app`) la genera y gestiona CNPG automáticamente al aplicar
 `deploy/base/database.yaml` — no se crea a mano. Keycloak reutiliza ese mismo secret (mismo rol,
 solo cambia la base a la que apunta: `keycloak` en vez de `app`) en lugar de tener un rol y un
 secret propios — ver el comentario en `deploy/base/database.yaml`.
+
+### Cómo conseguir el token de GitHub (evita el límite de 60 req/h sin autenticar)
+
+1. En GitHub: `Settings` (de tu usuario) → `Developer settings` → `Personal access tokens` →
+   `Tokens (classic)` → `Generate new token (classic)`
+   (`https://github.com/settings/tokens/new`).
+2. Nombre descriptivo (p.ej. `podium-appsource-poller`), expiración razonable (90 días, o la duración del
+   hackathon).
+3. **Sin marcar ningún scope** — el adaptador de AppSource es solo para repos públicos
+   (`docs/podium-domain/appsource/discovery.md`: "un solo adaptador por ahora (repos públicos)"), y GitHub ya
+   sube el límite a 5000 req/h con cualquier token autenticado, sin necesitar el scope `public_repo` para
+   **leer** (ese scope solo hace falta para escribir). Si se prefiere ser explícito, marcar únicamente
+   `public_repo`.
+4. Copiar el token (solo se muestra una vez) y usarlo en el `kubectl create secret` de arriba.
+5. El `CronJob` lo referencia via `secretKeyRef: {name: github-token, key: token}` → variable de entorno
+   `GITHUB_TOKEN`, usada tanto por `GitHubLatestCommitChecker` como por `GitHubPodiumManifestReader`.
 
 ## 2. Verificaciones previas en el clúster real
 

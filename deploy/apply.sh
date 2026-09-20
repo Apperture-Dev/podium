@@ -89,6 +89,14 @@ json.dump(out, sys.stdout)
 " | kubectl apply -f -
 fi
 
+if kubectl -n "$NAMESPACE" get secret github-token >/dev/null 2>&1; then
+  log "Secret 'github-token' ya existe, no se toca"
+else
+  : "${GITHUB_TOKEN:?Falta GITHUB_TOKEN (Personal Access Token de GitHub — ver deploy/README.md, 'Cómo conseguir el token de GitHub')}"
+  log "Creando secret 'github-token'"
+  kubectl -n "$NAMESPACE" create secret generic github-token --from-literal=token="$GITHUB_TOKEN"
+fi
+
 log "Dando de alta la Application de ArgoCD"
 kubectl apply -f "$REPO_ROOT/deploy/argocd/hostium.yaml"
 

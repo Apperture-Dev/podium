@@ -4,6 +4,7 @@ resources:
   - database.yaml
   - redis.yaml
   - php-migration-job.yaml
+  - appsource-poll-cronjob.yaml
   - php-deployment.yaml
   - php-service.yaml
   - php-ingress.yaml

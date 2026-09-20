@@ -56,4 +56,19 @@ final class DoctrineAppSourceRepositoryTest extends IntegrationTestCase
 
         $this->repository->get(AppSourceId::generate());
     }
+
+    public function testFindAllReturnsEveryTrackedAppSource(): void
+    {
+        $first = AppSource::register('project-1', 'https://github.com/team/repo-one', 'github');
+        $second = AppSource::register('project-2', 'https://github.com/team/repo-two', 'github');
+        $this->repository->save($first);
+        $this->repository->save($second);
+        $this->clearEntityManager();
+
+        $all = $this->repository->findAll();
+
+        $ids = array_map(static fn (AppSource $appSource): string => $appSource->id()->toString(), $all);
+        self::assertContains($first->id()->toString(), $ids);
+        self::assertContains($second->id()->toString(), $ids);
+    }
 }

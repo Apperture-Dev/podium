@@ -1,0 +1,59 @@
+# Detector de cambios (poller): compara la última revision conocida de cada
+# AppSource contra GitHub cada minuto — ver
+# services/php/src/AppSource/Infrastructure/Console/PollAppSourcesCommand.php
+# y docs/podium-domain/appsource/model.md. Misma imagen y credenciales de
+# BBDD que "php" (php-deployment.yaml) — necesita Messenger para publicar
+# SourceChanged, y GITHUB_TOKEN además (ver deploy/README.md).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: appsource-poll
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          imagePullSecrets:
+            - name: gitlab-token-auth
+          restartPolicy: Never
+          containers:
+            - name: appsource-poll
+              image: REGISTRY_PLACEHOLDER/php:latest
+              imagePullPolicy: IfNotPresent
+              command: ["php", "bin/console", "app:appsource:poll", "--no-interaction"]
+              env:
+                - name: APP_ENV
+                  value: prod
+                - name: APP_DEBUG
+                  value: "0"
+                - name: POSTGRES_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-app
+                      key: uri
+                - name: DATABASE_URL
+                  value: "$(POSTGRES_URL)?serverVersion=16&charset=utf8"
+                - name: APP_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: podium-app
+                      key: APP_SECRET
+                - name: MESSENGER_TRANSPORT_DSN
+                  value: "redis://redis-master:6379?serializer=0"
+                - name: GITHUB_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: github-token
+                      key: token
+              resources:
+                requests:
+                  memory: "128Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"

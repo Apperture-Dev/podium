@@ -27,4 +27,9 @@ final class DoctrineAppSourceRepository implements AppSourceRepository
         $this->entityManager->persist($appSource);
         $this->entityManager->flush();
     }
+
+    public function findAll(): array
+    {
+        return $this->entityManager->getRepository(AppSource::class)->findAll();
+    }
 }
