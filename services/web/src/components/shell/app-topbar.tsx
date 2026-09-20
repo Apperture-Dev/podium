@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Plus } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TeamSwitcher } from "@/components/shell/team-switcher";
@@ -13,7 +14,7 @@ export function AppTopbar() {
       </div>
       <div className="flex items-center gap-3">
         <Button render={<Link href="/projects/new" />} nativeButton={false}>
-          Nuevo proyecto
+          <Plus className="size-4" /> Nuevo proyecto
         </Button>
         <AgentEntryPoint />
       </div>

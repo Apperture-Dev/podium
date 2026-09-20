@@ -1,10 +1,19 @@
 "use client";
 
 import { use } from "react";
+import { LockKey } from "@phosphor-icons/react";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageBreadcrumb, PageHeader } from "@/components/shell/page-header";
 import { SecretCard } from "@/components/secrets/secret-card";
 import { NewSecretForm } from "@/components/secrets/new-secret-form";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { useProjects } from "@/lib/projects-context";
 import { useSecrets } from "@/lib/secrets-context";
 
@@ -35,9 +44,21 @@ export default function SecretsPage({
         action={<NewSecretForm projectId={id} />}
       />
       {secrets.length === 0 ? (
-        <p className="text-muted-foreground">
-          Este proyecto todavía no tiene credenciales.
-        </p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <LockKey />
+            </EmptyMedia>
+            <EmptyTitle>Sin credenciales</EmptyTitle>
+            <EmptyDescription>
+              Este proyecto todavía no tiene credenciales. Añade una para
+              empezar a usarla en tus builds y despliegues.
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <NewSecretForm projectId={id} />
+          </EmptyContent>
+        </Empty>
       ) : (
         <div className="max-w-2xl space-y-4">
           {secrets.map((secret) => (
