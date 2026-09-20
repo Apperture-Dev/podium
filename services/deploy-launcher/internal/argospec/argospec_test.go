@@ -170,3 +170,61 @@ func TestValuesObjectIsDeterministicForRepeatedCalls(t *testing.T) {
 		t.Fatalf("expected the same request to always produce the same values, got %v and %v", v1, v2)
 	}
 }
+
+// Sin declaración de base de datos, el chart tiene que recibir mode "none":
+// es lo que deja el Deployment exactamente como antes de que el chart supiera
+// nada de bases de datos, y es el caso de la inmensa mayoría de servicios.
+func TestBuildDefaultsDatabaseToNone(t *testing.T) {
+	values := argospec.ValuesObject(testRequest(), testConfig())
+
+	database, ok := values["database"].(map[string]any)
+	if !ok {
+		t.Fatalf("values[database] no es un mapa: %#v", values["database"])
+	}
+	if database["mode"] != "none" {
+		t.Fatalf("got mode %q, want none", database["mode"])
+	}
+}
+
+// El lanzador no decide el modo ni interpreta el podium.yaml: eso ya viene
+// resuelto por el BC Deploy. Aquí solo se comprueba que lo copia tal cual.
+func TestBuildCopiesTheResolvedUrlDatabase(t *testing.T) {
+	request := testRequest()
+	request.Database = events.DatabaseDeclaration{Mode: "url", UrlVar: "DB_URL"}
+
+	values := argospec.ValuesObject(request, testConfig())
+	database := values["database"].(map[string]any)
+
+	if database["mode"] != "url" {
+		t.Fatalf("got mode %q, want url", database["mode"])
+	}
+	if database["urlVar"] != "DB_URL" {
+		t.Fatalf("got urlVar %q, want DB_URL", database["urlVar"])
+	}
+}
+
+func TestBuildCopiesTheResolvedPartsDatabase(t *testing.T) {
+	request := testRequest()
+	request.Database = events.DatabaseDeclaration{
+		Mode: "parts",
+		Vars: map[string]string{"dbname": "APP_DATABASE", "username": "APP_DATABASE_USER"},
+	}
+
+	values := argospec.ValuesObject(request, testConfig())
+	database := values["database"].(map[string]any)
+
+	if database["mode"] != "parts" {
+		t.Fatalf("got mode %q, want parts", database["mode"])
+	}
+
+	// map[string]any y no map[string]string: unstructured.SetNestedMap sólo
+	// acepta tipos JSON, y un map[string]string revienta al construir la
+	// Application.
+	vars, ok := database["vars"].(map[string]any)
+	if !ok {
+		t.Fatalf("values[database][vars] no es map[string]any: %#v", database["vars"])
+	}
+	if vars["dbname"] != "APP_DATABASE" {
+		t.Fatalf("got dbname %q, want APP_DATABASE", vars["dbname"])
+	}
+}

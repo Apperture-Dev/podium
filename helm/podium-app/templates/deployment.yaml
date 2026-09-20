@@ -22,9 +22,53 @@ spec:
       # referencie para el pull.
       imagePullSecrets:
         - name: zot-pull-secret
+{{- if include "podium-app.databaseEnabled" . }}
+      # Garantiza el orden de verdad: el contenedor de la app no arranca hasta
+      # que Postgres acepta conexiones. La sync-wave del Cluster ordena el
+      # apply, pero no espera a que la base esté lista.
+      initContainers:
+        - name: wait-for-database
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - 'until pg_isready -h "$PGHOST" -p "$PGPORT"; do echo "esperando a la base de datos..."; sleep 2; done'
+          env:
+            - name: PGHOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "podium-app.databaseSecret" . }}
+                  key: host
+            - name: PGPORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "podium-app.databaseSecret" . }}
+                  key: port
+{{- end }}
       containers:
         - name: app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
             - name: http
               containerPort: {{ .Values.port }}
+{{- if eq .Values.database.mode "url" }}
+          env:
+            # El equipo declaró `URL: ${...}` en su podium.yaml: recibe la
+            # cadena de conexión completa en la variable que pidió.
+            - name: {{ .Values.database.urlVar }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "podium-app.databaseSecret" . }}
+                  key: uri
+{{- else if eq .Values.database.mode "parts" }}
+          env:
+            # Una env var por dato, con el nombre que pidió el equipo. La clave
+            # del map ya es la del Secret de CNPG, así que no hay traducción.
+{{- range $secretKey, $envVar := .Values.database.vars }}
+            - name: {{ $envVar }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "podium-app.databaseSecret" $ }}
+                  key: {{ $secretKey }}
+{{- end }}
+{{- end }}

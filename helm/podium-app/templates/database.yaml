@@ -1,0 +1,20 @@
+{{- if include "podium-app.databaseEnabled" . }}
+# sync-wave negativa: ArgoCD sincroniza el Cluster antes que el Deployment.
+# La wave por sí sola no garantiza la espera (depende de que ArgoCD sepa
+# evaluar la salud de un Cluster de CNPG), así que quien de verdad fuerza el
+# orden es el initContainer del Deployment — esto solo evita pedir las dos
+# cosas a la vez.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "podium-app.databaseCluster" . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  labels:
+    app: {{ .Release.Name }}
+    podium.dev/hash: {{ .Values.hash | quote }}
+spec:
+  instances: {{ .Values.database.instances }}
+  storage:
+    size: {{ .Values.database.storage }}
+{{- end }}

@@ -13,3 +13,29 @@ ingress:
 # convención real hoy (ver services/build-runner/templates/*.Dockerfile),
 # pero el chart NO debe asumirlo fijo — quien lo despliegue lo sobreescribe.
 port: 3000
+
+# Base de datos del servicio. Se traduce del bloque `database:` del podium.yaml
+# del equipo (ver docs/podium-config/podium-yaml-guide.md), ya resuelto por el
+# BC Deploy: aquí no se decide nada, solo se renderiza.
+#
+#   mode: none   -> ni Cluster ni env vars. Es el comportamiento por defecto y
+#                   deja el chart exactamente como antes de existir este bloque.
+#   mode: url    -> un Cluster de CNPG, y su cadena de conexión inyectada en la
+#                   env var que el equipo pidió (`URL: ${DB_URL}` -> DB_URL).
+#   mode: parts  -> un Cluster de CNPG, y cada dato suelto en la env var que el
+#                   equipo pidió para él.
+#
+# Las claves de `vars` son las del Secret que genera CNPG, no las del
+# podium.yaml: así el template las copia sin tabla de traducción. Podium nunca
+# ve la contraseña — el Deployment la referencia por secretKeyRef.
+database:
+  mode: none
+  urlVar: ""
+  vars: {}
+  #  dbname: APP_DATABASE
+  #  username: APP_DATABASE_USER
+  #  password: APP_DATABASE_PASSWORD
+  #  host: APP_DATABASE_HOST
+  #  port: APP_DATABASE_PORT
+  instances: 1
+  storage: 1Gi

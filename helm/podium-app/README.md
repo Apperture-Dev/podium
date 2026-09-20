@@ -28,6 +28,15 @@ port: 3000             # puerto del contenedor — default a la convención Node
                         # sobreescribible por values
 ```
 
+```yaml
+database:              # traducido del bloque `database:` del podium.yaml del equipo,
+  mode: none           # ya resuelto por el BC Deploy — aquí no se decide nada
+  urlVar: ""           # mode=url: env var donde va la cadena de conexión
+  vars: {}             # mode=parts: {clave del Secret de CNPG: nombre de env var}
+  instances: 1
+  storage: 1Gi
+```
+
 `port` tiene origen en `Template.defaultPort` (Build BC, convención por lenguaje/framework — igual
 que `jobImage`) y viaja sin tocar por `BuildSucceeded` → `ApplicationDeployRequested` →
 `DeployAttemptRequested` hasta `services/deploy-launcher`, que lo pasa directo a este value — ver
@@ -37,6 +46,31 @@ TLS: `apperture-wildcard-tls` (cubre `*.apperture.dev`, un solo nivel — el hos
 `{serviceName}-{hash}.apperture.dev`, exactamente ese nivel — un subdominio de dos niveles como
 `{serviceName}.{hash}.apperture.dev` NO estaría cubierto, confirmado contra el certificado real) —
 ya reflejado por Reflector en cualquier namespace nuevo, sin paso manual.
+
+## Base de datos por servicio
+
+Con `database.mode` distinto de `none`, el chart añade un `Cluster` de CNPG llamado
+`{release}-db` y le pasa sus credenciales al contenedor. Podium **nunca ve la contraseña**: CNPG
+genera el Secret `{release}-db-app` con `dbname`, `username`, `password`, `host`, `port` y `uri`
+dentro, y el `Deployment` lo referencia por `secretKeyRef`.
+
+Los dos modos corresponden a las dos formas de declararlo en el `podium.yaml`:
+
+| `mode` | Qué declaró el equipo | Qué recibe el contenedor |
+|---|---|---|
+| `none` (por defecto) | nada, o `enable: false` | nada — ni Cluster ni env vars, el chart queda como antes de existir este bloque |
+| `url` | `URL: ${DB_URL}` | la cadena de conexión completa en `DB_URL` (clave `uri` del Secret) |
+| `parts` | `database:`, `user:`, `password:`, `host:`, `port:` | una env var por dato, con el nombre que pidió |
+
+Las claves de `database.vars` son **las del Secret de CNPG** (`dbname`, `username`…), no las del
+`podium.yaml`: así la plantilla las copia sin tabla de traducción. Quien traduce es el BC Deploy,
+que es donde vive la regla de que `URL` gana sobre los campos sueltos.
+
+**El orden lo fuerza un initContainer**, no sólo la sync-wave. El `Cluster` lleva
+`argocd.argoproj.io/sync-wave: "-1"` para que ArgoCD lo aplique antes, pero esa wave sólo espera
+de verdad si ArgoCD sabe evaluar la salud de un `Cluster` de CNPG — no está confirmado que lo
+haga. Por eso el `Deployment` arranca con un initContainer que hace `pg_isready` en bucle: el
+contenedor de la app no se ejecuta hasta que Postgres acepta conexiones, sepa ArgoCD lo que sepa.
 
 ## Namespace
 
@@ -85,5 +119,8 @@ EOF
 
 - NetworkPolicy (las 5 ya validadas en `docs/hackathon-netpol/`) — fuera de alcance de esta
   primera versión del chart, tarea aparte.
+- **Las env vars propias del equipo** (bloque `environment:` del `podium.yaml`) siguen sin llegar
+  al contenedor: hoy el `env` del `Deployment` sólo lo generan los modos de base de datos. Cuando
+  se añadan, hay que **fusionar** ambas listas, no sustituir una por otra.
 - Sin probar todavía un sync real de ArgoCD contra este chart — pendiente de que
   `services/deploy-launcher` exista y de registrar el repo OCI en el ArgoCD real.

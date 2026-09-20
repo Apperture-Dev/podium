@@ -38,6 +38,42 @@ type DeployAttemptRequested struct {
 	Port                int64       `json:"port"`
 	EnvVars             FlexibleMap `json:"envVars"`
 	DatabaseDeclaration FlexibleMap `json:"databaseDeclaration"`
+	Database            DatabaseDeclaration `json:"database"`
+}
+
+// DatabaseDeclaration is the tenant's database need, already resolved by the
+// Deploy BC: which of the two shapes the team used in its podium.yaml, and
+// under which environment variable names it wants each value. No rule is
+// applied here — "URL wins over the loose fields" is domain, and lives in PHP.
+//
+// Mode is "none", "url" or "parts"; an absent block unmarshals to the zero
+// value, which Values() reports as "none".
+type DatabaseDeclaration struct {
+	Mode   string            `json:"mode"`
+	UrlVar string            `json:"urlVar"`
+	Vars   map[string]string `json:"vars"`
+}
+
+// Values renders the declaration as the chart's `database` values. The map is
+// map[string]any all the way down because unstructured.SetNestedMap only
+// accepts JSON types — a map[string]string panics when building the
+// Application.
+func (d DatabaseDeclaration) Values() map[string]any {
+	mode := d.Mode
+	if mode == "" {
+		mode = "none"
+	}
+
+	vars := map[string]any{}
+	for key, envVar := range d.Vars {
+		vars[key] = envVar
+	}
+
+	return map[string]any{
+		"mode":   mode,
+		"urlVar": d.UrlVar,
+		"vars":   vars,
+	}
 }
 
 // FlexibleMap unmarshals a JSON object normally, and treats a JSON array

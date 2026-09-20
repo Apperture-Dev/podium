@@ -83,7 +83,8 @@ func valuesObject(req events.DeployAttemptRequested, cfg Config, repository, tag
 		"ingress": map[string]any{
 			"host": tenantSlug(req) + "." + cfg.BaseDomain,
 		},
-		"port": req.Port,
+		"port":     req.Port,
+		"database": req.Database.Values(),
 	}
 }
 
