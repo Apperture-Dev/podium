@@ -20,9 +20,9 @@ function initialsOf(serviceName: string): string {
     .join("");
 }
 
-/** {serviceName}.{hash}.apperture.dev is the real URL convention (see project/discovery.md). */
+/** {serviceName}-{hash}.apperture.dev keeps the public URL to a single subdomain level. */
 function serviceUrl(application: Application, projectHash: string): string {
-  return `${application.serviceName}.${projectHash}.apperture.dev`;
+  return `${application.serviceName}-${projectHash}.apperture.dev`;
 }
 
 export function ApplicationCard({
