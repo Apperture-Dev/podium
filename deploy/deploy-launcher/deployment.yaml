@@ -39,6 +39,16 @@ spec:
               value: "0.1.1"
             - name: BASE_DOMAIN
               value: "apperture.dev"
+            # 3 reintentos es el invariante confirmado en
+            # docs/podium-domain/deploy/discovery.md (política de infra, no
+            # de dominio) — el default de 5s entre intentos (15s en total)
+            # resultó demasiado corto en el primer deploy real: el pod tardó
+            # 41s solo en llegar a Running (pull de imagen + arranque).
+            # 20s x 3 = 60s, alineado con el objetivo de
+            # docs/hackathon-plan/plan-hackbarna-2026.md ("live public URL
+            # en ~60s").
+            - name: HEALTH_POLL_INTERVAL
+              value: "20s"
           resources:
             requests:
               memory: "64Mi"
