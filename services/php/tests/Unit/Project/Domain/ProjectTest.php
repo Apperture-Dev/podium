@@ -64,6 +64,23 @@ final class ProjectTest extends UnitTestCase
         self::assertSame(['frontend'], $this->project->knownServiceNames());
     }
 
+    /**
+     * Sin esto, App Manager registra la Application pero nunca pide su
+     * primer build: ApplicationSourceChanged (lo único que dispara
+     * markSourceChanged) solo se emite para servicios ya conocidos, así que
+     * un servicio nuevo se quedaba en Created para siempre. ServiceDiscovered
+     * tiene que llevar los mismos datos de la revisión para que App Manager
+     * pueda pedir el build inmediatamente al registrar.
+     */
+    public function testServiceDiscoveredCarriesTheRevisionSoTheFirstBuildCanBeRequested(): void
+    {
+        $events = $this->project->processSourceChanged('rev-1', 'https://github.com/team/repo', 'github', [$this->frontend]);
+
+        self::assertSame('rev-1', $events[0]->revision);
+        self::assertSame('https://github.com/team/repo', $events[0]->repositoryUrl);
+        self::assertSame('github', $events[0]->provider);
+    }
+
     public function testMixedKnownAndNewServicesProduceOneEventEach(): void
     {
         $this->project->processSourceChanged('rev-0', 'https://github.com/team/repo', 'github', [$this->backend]);

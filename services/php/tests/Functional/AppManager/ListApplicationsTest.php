@@ -19,7 +19,7 @@ final class ListApplicationsTest extends FunctionalTestCase
         $projectId = $this->jsonResponse()['id'];
 
         $appManager = static::getContainer()->get(AppManagerApplicationService::class);
-        $appManager->registerApplication('backend', $projectId, 'php', 'symfony');
+        $appManager->registerApplication('backend', $projectId, 'php', 'symfony', 'rev-1', 'https://github.com/team/repo', 'github');
 
         $this->getJson('/api/teams/'.$teamId.'/projects/'.$projectId.'/applications', bearerToken: 'user-1');
 

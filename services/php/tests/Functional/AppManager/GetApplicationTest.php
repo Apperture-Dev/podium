@@ -19,14 +19,14 @@ final class GetApplicationTest extends FunctionalTestCase
         $projectId = $this->jsonResponse()['id'];
 
         $appManager = static::getContainer()->get(AppManagerApplicationService::class);
-        $appManager->registerApplication('backend', $projectId, 'php', 'symfony');
+        $appManager->registerApplication('backend', $projectId, 'php', 'symfony', 'rev-1', 'https://github.com/team/repo', 'github');
 
         $this->getJson('/api/teams/'.$teamId.'/projects/'.$projectId.'/applications/backend', bearerToken: 'user-1');
 
         self::assertResponseStatusCodeSame(Response::HTTP_OK);
         $application = $this->jsonResponse();
         self::assertSame('backend', $application['serviceName']);
-        self::assertSame('Created', $application['state']);
+        self::assertSame('Building', $application['state']);
         self::assertSame('symfony', $application['framework']);
         self::assertNotEmpty($application['createdAt']);
     }
@@ -40,7 +40,7 @@ final class GetApplicationTest extends FunctionalTestCase
         $projectId = $this->jsonResponse()['id'];
 
         $appManager = static::getContainer()->get(AppManagerApplicationService::class);
-        $appManager->registerApplication('backend', $projectId, 'php', 'symfony');
+        $appManager->registerApplication('backend', $projectId, 'php', 'symfony', 'rev-1', 'https://github.com/team/repo', 'github');
 
         $this->getJson('/api/teams/'.$teamId.'/projects/'.$projectId.'/applications/backend', bearerToken: 'user-2');
 

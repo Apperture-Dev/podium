@@ -59,13 +59,13 @@ final class ApplicationLifecycleTest extends KernelTestCase
 
     public function testFullCycleFromDiscoveryToDeployed(): void
     {
-        ($this->serviceDiscoveredHandler)(new ServiceDiscovered('backend', $this->projectId, 'php', 'symfony'));
+        // ServiceDiscovered lleva ya la revisión: el primer build se pide al
+        // registrar, sin esperar un ApplicationSourceChanged aparte (que
+        // Project nunca emite para un servicio recién descubierto en la
+        // misma pasada — ver Project::processSourceChanged).
+        ($this->serviceDiscoveredHandler)(new ServiceDiscovered('backend', $this->projectId, 'php', 'symfony', 'rev-1', 'https://github.com/team/repo', 'github'));
         $application = $this->applications->findByProjectIdAndServiceName($this->projectId, 'backend');
         self::assertNotNull($application);
-        self::assertSame(ApplicationState::Created, $application->state());
-
-        ($this->sourceChangedHandler)(new ApplicationSourceChanged('backend', $this->projectId, 'rev-1', 'https://github.com/team/repo', 'github'));
-        $application = $this->applications->get($application->id());
         self::assertSame(ApplicationState::Building, $application->state());
 
         $buildRequested = $this->envelopesOn('application_build_requested');
@@ -88,19 +88,24 @@ final class ApplicationLifecycleTest extends KernelTestCase
 
     public function testBuildFailurePath(): void
     {
-        ($this->serviceDiscoveredHandler)(new ServiceDiscovered('frontend', $this->projectId, 'typescript', 'react'));
-        ($this->sourceChangedHandler)(new ApplicationSourceChanged('frontend', $this->projectId, 'rev-1', 'https://github.com/team/repo', 'github'));
+        ($this->serviceDiscoveredHandler)(new ServiceDiscovered('frontend', $this->projectId, 'typescript', 'react', 'rev-1', 'https://github.com/team/repo', 'github'));
 
         ($this->buildFailedHandler)(new BuildFailed('frontend', $this->projectId, 'v1', 'compile error'));
 
         $application = $this->applications->findByProjectIdAndServiceName($this->projectId, 'frontend');
         self::assertSame(ApplicationState::BuildFailed, $application->state());
+
+        // Una revisión nueva de un servicio ya conocido sí llega como
+        // ApplicationSourceChanged (a diferencia del primer descubrimiento) —
+        // comprueba que ese otro punto de entrada real también funciona.
+        ($this->sourceChangedHandler)(new ApplicationSourceChanged('frontend', $this->projectId, 'rev-2', 'https://github.com/team/repo', 'github'));
+        $application = $this->applications->get($application->id());
+        self::assertSame(ApplicationState::Building, $application->state());
     }
 
     public function testDeployFailurePath(): void
     {
-        ($this->serviceDiscoveredHandler)(new ServiceDiscovered('worker', $this->projectId, 'go', 'none'));
-        ($this->sourceChangedHandler)(new ApplicationSourceChanged('worker', $this->projectId, 'rev-1', 'https://github.com/team/repo', 'github'));
+        ($this->serviceDiscoveredHandler)(new ServiceDiscovered('worker', $this->projectId, 'go', 'none', 'rev-1', 'https://github.com/team/repo', 'github'));
         $application = $this->applications->findByProjectIdAndServiceName($this->projectId, 'worker');
         ($this->buildSucceededHandler)(new BuildSucceeded('worker', $this->projectId, $application->version(), 'registry/worker:rev-1', 3000, [], []));
 

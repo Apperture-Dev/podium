@@ -73,29 +73,25 @@ final class LoadFixturesCommand extends Command
 
     private function deployedApplication(string $projectId, string $serviceName): void
     {
-        $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs');
-        $this->applications->markSourceChanged($projectId, $serviceName, 'a1b2c3d', 'https://github.com/podium-hackathon/marketplace-api', 'github');
+        $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs', 'a1b2c3d', 'https://github.com/podium-hackathon/marketplace-api', 'github');
         $this->applications->markBuildSucceeded($projectId, $serviceName, 'registry.podium.dev/marketplace-api-backend:a1b2c3d', 3000, [], []);
         $this->applications->markDeploySucceeded($projectId, $serviceName);
     }
 
     private function buildFailedApplication(string $projectId, string $serviceName): void
     {
-        $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs');
-        $this->applications->markSourceChanged($projectId, $serviceName, 'b2c3d4e', 'https://github.com/podium-hackathon/marketplace-api', 'github');
+        $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs', 'b2c3d4e', 'https://github.com/podium-hackathon/marketplace-api', 'github');
         $this->applications->markBuildFailed($projectId, $serviceName);
     }
 
     private function buildingApplication(string $projectId, string $serviceName): void
     {
-        $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs');
-        $this->applications->markSourceChanged($projectId, $serviceName, 'c3d4e5f', 'https://github.com/podium-hackathon/landing-page', 'github');
+        $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs', 'c3d4e5f', 'https://github.com/podium-hackathon/landing-page', 'github');
     }
 
     private function deployFailedApplication(string $projectId, string $serviceName): void
     {
-        $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs');
-        $this->applications->markSourceChanged($projectId, $serviceName, 'd4e5f6a', 'https://github.com/podium-hackathon/analytics-service', 'github');
+        $this->applications->registerApplication($serviceName, $projectId, 'nodejs', 'nestjs', 'd4e5f6a', 'https://github.com/podium-hackathon/analytics-service', 'github');
         $this->applications->markBuildSucceeded($projectId, $serviceName, 'registry.podium.dev/analytics-service-api:d4e5f6a', 3000, [], []);
         $this->applications->markDeployFailed($projectId, $serviceName);
     }

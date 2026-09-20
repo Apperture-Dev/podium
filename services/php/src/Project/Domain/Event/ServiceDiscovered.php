@@ -11,6 +11,9 @@ final readonly class ServiceDiscovered
         public string $projectId,
         public string $lang,
         public string $framework,
+        public string $revision,
+        public string $repositoryUrl,
+        public string $provider,
     ) {
     }
 }

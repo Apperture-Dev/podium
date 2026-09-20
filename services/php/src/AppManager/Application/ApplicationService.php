@@ -30,13 +30,18 @@ final readonly class ApplicationService
     }
 
     /** Reacciona a `ServiceDiscovered` (publicado por Project). */
-    public function registerApplication(string $serviceName, string $projectId, string $lang, string $framework): string
+    public function registerApplication(string $serviceName, string $projectId, string $lang, string $framework, string $revision, string $repositoryUrl, string $provider): string
     {
         $project = $this->projects->get(ProjectId::fromString($projectId));
         $templateId = $this->templateResolver->resolve($lang, $framework);
 
         $application = Application::register($serviceName, $projectId, $project->teamId(), $templateId, $framework);
-        $events = $application->releaseEvents();
+        // Un servicio recién descubierto pide su primer build de inmediato —
+        // Project nunca emite ApplicationSourceChanged para un servicio que
+        // acaba de añadir a knownServiceNames en la misma pasada (ver
+        // Project::processSourceChanged), así que sin este encadenado la
+        // Application se quedaría en Created para siempre.
+        $events = $application->markSourceChanged($revision, $repositoryUrl, $provider);
 
         $this->applications->save($application);
         $this->dispatchAll($events);
