@@ -3,4 +3,4 @@ name: podium-app
 description: Chart genérico de Podium — un Deployment/Service/Ingress por tenant, parametrizado por hash/imagen/host. Ver README.md.
 type: application
 # version: bump a mano si cambia cualquier plantilla — no hay CI que lo haga solo.
-version: 0.1.0
+version: 0.1.1

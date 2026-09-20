@@ -16,6 +16,12 @@ spec:
         app: {{ .Release.Name }}
         podium.dev/hash: {{ .Values.hash | quote }}
     spec:
+      # registry.apperture.dev (zot) es privado — zot-pull-secret ya está
+      # reflejado en cualquier namespace por Reflector (mismo mecanismo que
+      # usa build-launcher para el push), solo falta que el Deployment lo
+      # referencie para el pull.
+      imagePullSecrets:
+        - name: zot-pull-secret
       containers:
         - name: app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
