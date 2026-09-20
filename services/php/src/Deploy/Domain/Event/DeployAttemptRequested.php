@@ -7,8 +7,12 @@ namespace App\Deploy\Domain\Event;
 final readonly class DeployAttemptRequested
 {
     /**
-     * @param array<string, string> $envVars
-     * @param array<string, string> $databaseDeclaration
+     * `database` viaja ya resuelto (`mode`/`urlVar`/`vars`), exactamente como
+     * los espera el chart: la regla de qué forma del podium.yaml gana es
+     * dominio y se decide aquí, no en el lanzador ni en la plantilla de Helm.
+     *
+     * @param array<string, string>                                              $envVars
+     * @param array{mode: string, urlVar: string, vars: array<string, string>}   $database
      */
     public function __construct(
         public string $deployAttemptId,
@@ -17,7 +21,7 @@ final readonly class DeployAttemptRequested
         public string $image,
         public int $port,
         public array $envVars,
-        public array $databaseDeclaration,
+        public array $database,
     ) {
     }
 }

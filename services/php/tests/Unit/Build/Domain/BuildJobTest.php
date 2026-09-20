@@ -51,16 +51,18 @@ final class BuildJobTest extends UnitTestCase
 
     public function testCompleteBuildJobMovesToSucceededAndPublishesBuildSucceeded(): void
     {
-        $events = $this->buildJob->completeBuildJob('registry/backend:rev-1', 3000, ['NPM_TOKEN' => 'x'], ['API_URL' => 'https://x'], []);
+        $events = $this->buildJob->completeBuildJob('registry/backend:rev-1', 3000, ['NPM_TOKEN' => 'x']);
 
         self::assertSame(BuildStatus::Succeeded, $this->buildJob->status());
         self::assertSame('registry/backend:rev-1', $this->buildJob->image());
-        self::assertSame(['API_URL' => 'https://x'], $this->buildJob->yamlSnapshot()?->deployEnvVars);
+        self::assertSame(['NPM_TOKEN' => 'x'], $this->buildJob->yamlSnapshot()?->buildEnvVars);
         self::assertCount(1, $events);
         self::assertInstanceOf(BuildSucceeded::class, $events[0]);
         self::assertSame('registry/backend:rev-1', $events[0]->image);
         self::assertSame(3000, $events[0]->port);
-        self::assertSame(['API_URL' => 'https://x'], $events[0]->deployEnvVars);
+        // El evento lleva de dónde salió la imagen, no lo que la app necesita
+            // para correr: eso lo lee Deploy del yaml de esta misma revisión.
+        self::assertSame('rev-1', $events[0]->commitId);
     }
 
     public function testFailBuildJobMovesToFailedAndPublishesBuildFailed(): void

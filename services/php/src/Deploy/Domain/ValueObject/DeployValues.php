@@ -13,28 +13,31 @@ namespace App\Deploy\Domain\ValueObject;
  */
 final readonly class DeployValues
 {
+    /** @param array<string, string> $envVars vacío por ahora: el chart todavía no inyecta las del equipo */
     public function __construct(
         public string $image,
-        /** @var array<string, string> */
         public array $envVars,
-        /** @var array<string, string> */
-        public array $databaseDeclaration,
+        public DatabaseDeclaration $database,
     ) {
     }
 
-    /** @return array{image: string, envVars: array<string,string>, databaseDeclaration: array<string,string>} */
+    /** @return array{image: string, envVars: array<string,string>, database: array{mode: string, urlVar: string, vars: array<string,string>}} */
     public function toArray(): array
     {
         return [
             'image' => $this->image,
             'envVars' => $this->envVars,
-            'databaseDeclaration' => $this->databaseDeclaration,
+            'database' => $this->database->toArray(),
         ];
     }
 
-    /** @param array{image: string, envVars: array<string,string>, databaseDeclaration: array<string,string>} $data */
+    /** @param array{image: string, envVars?: array<string,string>, database?: array<string,mixed>} $data */
     public static function fromArray(array $data): self
     {
-        return new self($data['image'], $data['envVars'], $data['databaseDeclaration']);
+        return new self(
+            $data['image'],
+            $data['envVars'] ?? [],
+            DatabaseDeclaration::fromArray($data['database'] ?? []),
+        );
     }
 }

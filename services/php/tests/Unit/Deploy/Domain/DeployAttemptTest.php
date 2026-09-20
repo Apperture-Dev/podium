@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Deploy\Domain;
 
 use App\Deploy\Domain\DeployAttempt;
+use App\Deploy\Domain\ValueObject\DatabaseDeclaration;
 use App\Deploy\Domain\DeployStatus;
 use App\Deploy\Domain\Event\DeployAttemptRequested;
 use App\Deploy\Domain\Event\DeployFailed;
@@ -28,14 +29,14 @@ final class DeployAttemptTest extends UnitTestCase
             'registry/backend:rev-1',
             3000,
             ['API_URL' => 'https://x'],
-            [],
+            DatabaseDeclaration::none(),
         );
         $this->deployAttempt->releaseEvents();
     }
 
     public function testRequestStartsInPendingAndPublishesDeployAttemptRequested(): void
     {
-        $deployAttempt = DeployAttempt::request('team-1', 'backend', 'project-1', 'abc12345', 'v1', 'registry/backend:rev-1', 3000, ['API_URL' => 'https://x'], []);
+        $deployAttempt = DeployAttempt::request('team-1', 'backend', 'project-1', 'abc12345', 'v1', 'registry/backend:rev-1', 3000, ['API_URL' => 'https://x'], DatabaseDeclaration::none());
 
         $events = $deployAttempt->releaseEvents();
 

@@ -7,6 +7,7 @@ namespace App\Deploy\Domain;
 use App\Deploy\Domain\Event\DeployAttemptRequested;
 use App\Deploy\Domain\Event\DeployFailed;
 use App\Deploy\Domain\Event\DeploySucceeded;
+use App\Deploy\Domain\ValueObject\DatabaseDeclaration;
 use App\Deploy\Domain\ValueObject\DeployAttemptId;
 use App\Deploy\Domain\ValueObject\DeployValues;
 
@@ -50,7 +51,7 @@ final class DeployAttempt
         string $image,
         int $port,
         array $deployEnvVars,
-        array $databaseDeclaration,
+        DatabaseDeclaration $database,
     ): self {
         $deployAttempt = new self(
             DeployAttemptId::generate(),
@@ -58,7 +59,7 @@ final class DeployAttempt
             $serviceName,
             $projectId,
             $version,
-            new DeployValues($image, $deployEnvVars, $databaseDeclaration),
+            new DeployValues($image, $deployEnvVars, $database),
             DeployStatus::Pending,
             null,
             null,
@@ -71,7 +72,7 @@ final class DeployAttempt
             $image,
             $port,
             $deployEnvVars,
-            $databaseDeclaration,
+            $database->toArray(),
         ));
 
         return $deployAttempt;

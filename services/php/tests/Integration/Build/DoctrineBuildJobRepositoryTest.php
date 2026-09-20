@@ -39,7 +39,7 @@ final class DoctrineBuildJobRepositoryTest extends IntegrationTestCase
     public function testCompletingABuildJobPersistsTheYamlSnapshot(): void
     {
         $buildJob = BuildJob::request('team-1', 'backend', 'project-1', 'template-1', 'ghcr.io/podium/buildah-node:latest', 'v1', 'rev-1', 'https://github.com/team/repo', 'github');
-        $buildJob->completeBuildJob('registry/backend:rev-1', 3000, [], ['API_URL' => 'https://x'], []);
+        $buildJob->completeBuildJob('registry/backend:rev-1', 3000, ['NPM_TOKEN' => 'x']);
         $this->repository->save($buildJob);
         $this->clearEntityManager();
 
@@ -47,7 +47,7 @@ final class DoctrineBuildJobRepositoryTest extends IntegrationTestCase
 
         self::assertSame(BuildStatus::Succeeded, $retrieved->status());
         self::assertSame('registry/backend:rev-1', $retrieved->image());
-        self::assertSame(['API_URL' => 'https://x'], $retrieved->yamlSnapshot()?->deployEnvVars);
+        self::assertSame(['NPM_TOKEN' => 'x'], $retrieved->yamlSnapshot()?->buildEnvVars);
     }
 
     public function testGetThrowsWhenNotFound(): void

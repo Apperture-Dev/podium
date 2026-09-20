@@ -18,12 +18,13 @@ final readonly class JobSucceededHandler
 
     public function __invoke(JobSucceeded $message): void
     {
+        // deployEnvVars/databaseDeclaration siguen en el mensaje porque forman
+        // parte del contrato con el lanzador Go, pero ya no los consume nadie:
+        // lo que la aplicación necesita para correr lo lee Deploy del yaml.
         $this->applicationService->completeBuildJob(
             $message->buildJobId,
             $message->image,
             $message->buildEnvVars,
-            $message->deployEnvVars,
-            $message->databaseDeclaration,
         );
     }
 }

@@ -5,36 +5,33 @@ declare(strict_types=1);
 namespace App\Build\Domain\ValueObject;
 
 /**
- * El yaml (podium.yaml) resuelto de un BuildJob, leído y validado por el
- * propio Job de Kubernetes (nunca por Build) — se recibe entero en
- * `JobSucceeded`. buildEnvVars es uso propio del Job; deployEnvVars y
- * databaseDeclaration se reparten hacia adelante en BuildSucceeded.
+ * El yaml (podium.yaml) resuelto de un BuildJob, leído por el propio Job de
+ * Kubernetes (nunca por Build) — se recibe en `JobSucceeded`.
+ *
+ * Solo guarda lo que es de construcción. Lo que la aplicación necesita para
+ * correr — env vars de runtime, base de datos — lo lee Deploy del mismo yaml
+ * en la misma revisión: Build hace una imagen y no tiene por qué saber qué
+ * necesita esa imagen para funcionar.
  */
 final readonly class BuildYamlSnapshot
 {
+    /** @param array<string, string> $buildEnvVars */
     public function __construct(
-        /** @var array<string, string> */
         public array $buildEnvVars,
-        /** @var array<string, string> */
-        public array $deployEnvVars,
-        /** @var array<string, string> */
-        public array $databaseDeclaration,
     ) {
     }
 
-    /** @return array{buildEnvVars: array<string,string>, deployEnvVars: array<string,string>, databaseDeclaration: array<string,string>} */
+    /** @return array{buildEnvVars: array<string,string>} */
     public function toArray(): array
     {
         return [
             'buildEnvVars' => $this->buildEnvVars,
-            'deployEnvVars' => $this->deployEnvVars,
-            'databaseDeclaration' => $this->databaseDeclaration,
         ];
     }
 
-    /** @param array{buildEnvVars: array<string,string>, deployEnvVars: array<string,string>, databaseDeclaration: array<string,string>} $data */
+    /** @param array{buildEnvVars: array<string,string>} $data */
     public static function fromArray(array $data): self
     {
-        return new self($data['buildEnvVars'], $data['deployEnvVars'], $data['databaseDeclaration']);
+        return new self($data['buildEnvVars']);
     }
 }

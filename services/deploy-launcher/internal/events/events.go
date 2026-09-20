@@ -23,22 +23,21 @@ const HealthCheckSucceededType = `App\Deploy\Application\Message\HealthCheckSucc
 const HealthCheckExhaustedType = `App\Deploy\Application\Message\HealthCheckExhausted`
 
 // DeployAttemptRequested is Deploy's outbound signal that a tenant
-// Application should be created/updated. EnvVars/DatabaseDeclaration use
-// FlexibleMap, not a plain map[string]any: PHP encodes an empty associative
+// Application should be created/updated. EnvVars uses FlexibleMap, not a
+// plain map[string]any: PHP encodes an empty associative
 // array as a JSON array ([]), not an object ({}), and encoding/json refuses
 // to unmarshal a JSON array into ANY map type (map[string]any included —
 // the mismatch is array-vs-object, not about the map's value type).
 // Confirmed against a real captured envelope (see internal/messenger
 // tests) where both fields were empty and serialized as [].
 type DeployAttemptRequested struct {
-	DeployAttemptID     string      `json:"deployAttemptId"`
-	Hash                string      `json:"hash"`
-	ServiceName         string      `json:"serviceName"`
-	Image               string      `json:"image"`
-	Port                int64       `json:"port"`
-	EnvVars             FlexibleMap `json:"envVars"`
-	DatabaseDeclaration FlexibleMap `json:"databaseDeclaration"`
-	Database            DatabaseDeclaration `json:"database"`
+	DeployAttemptID string              `json:"deployAttemptId"`
+	Hash            string              `json:"hash"`
+	ServiceName     string              `json:"serviceName"`
+	Image           string              `json:"image"`
+	Port            int64               `json:"port"`
+	EnvVars         FlexibleMap         `json:"envVars"`
+	Database        DatabaseDeclaration `json:"database"`
 }
 
 // DatabaseDeclaration is the tenant's database need, already resolved by the

@@ -71,12 +71,12 @@ final readonly class ApplicationService
     }
 
     /** Reacciona a `JobSucceeded` (lanzador de Kubernetes, Go, diferido). */
-    public function completeBuildJob(string $buildJobId, string $image, array $buildEnvVars, array $deployEnvVars, array $databaseDeclaration): void
+    public function completeBuildJob(string $buildJobId, string $image, array $buildEnvVars): void
     {
         $buildJob = $this->buildJobs->get(BuildJobId::fromString($buildJobId));
         $template = $this->templates->get(TemplateId::fromString($buildJob->templateId()));
 
-        $events = $buildJob->completeBuildJob($image, $template->defaultPort(), $buildEnvVars, $deployEnvVars, $databaseDeclaration);
+        $events = $buildJob->completeBuildJob($image, $template->defaultPort(), $buildEnvVars);
 
         $this->buildJobs->save($buildJob);
         $this->dispatchAll($events);

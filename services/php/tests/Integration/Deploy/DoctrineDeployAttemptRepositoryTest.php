@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Integration\Deploy;
 
 use App\Deploy\Domain\DeployAttempt;
+use App\Deploy\Domain\ValueObject\DatabaseDeclaration;
 use App\Deploy\Domain\DeployStatus;
 use App\Deploy\Domain\Port\DeployAttemptRepository;
 use App\Deploy\Domain\ValueObject\DeployAttemptId;
@@ -24,7 +25,7 @@ final class DoctrineDeployAttemptRepositoryTest extends IntegrationTestCase
 
     public function testItCanPersistAndRetrieveById(): void
     {
-        $deployAttempt = DeployAttempt::request('team-1', 'backend', 'project-1', 'abc12345', 'v1', 'registry/backend:rev-1', 3000, ['API_URL' => 'https://x'], []);
+        $deployAttempt = DeployAttempt::request('team-1', 'backend', 'project-1', 'abc12345', 'v1', 'registry/backend:rev-1', 3000, ['API_URL' => 'https://x'], DatabaseDeclaration::none());
 
         $this->repository->save($deployAttempt);
         $this->clearEntityManager();
@@ -40,7 +41,7 @@ final class DoctrineDeployAttemptRepositoryTest extends IntegrationTestCase
 
     public function testFailingADeployAttemptPersistsTheRetryCount(): void
     {
-        $deployAttempt = DeployAttempt::request('team-1', 'backend', 'project-1', 'abc12345', 'v1', 'registry/backend:rev-1', 3000, [], []);
+        $deployAttempt = DeployAttempt::request('team-1', 'backend', 'project-1', 'abc12345', 'v1', 'registry/backend:rev-1', 3000, [], DatabaseDeclaration::none());
         $deployAttempt->failDeployAttempt('reintentos agotados', 3);
         $this->repository->save($deployAttempt);
         $this->clearEntityManager();

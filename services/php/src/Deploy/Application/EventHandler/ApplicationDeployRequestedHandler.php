@@ -24,8 +24,9 @@ final readonly class ApplicationDeployRequestedHandler
             $event->version,
             $event->image,
             $event->port,
-            $event->deployEnvVars,
-            $event->databaseDeclaration,
+            $event->commitId,
+            $event->repositoryUrl,
+            $event->provider,
         );
     }
 }

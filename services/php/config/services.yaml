@@ -22,6 +22,7 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
     App\Project\Domain\Port\PodiumManifestReader: '@App\Project\Infrastructure\Manifest\GitHubPodiumManifestReader'
+    App\Deploy\Domain\Port\PodiumManifestReader: '@App\Deploy\Infrastructure\Manifest\GitHubPodiumManifestReader'
     App\AppManager\Domain\Port\TemplateResolver: '@App\AppManager\Infrastructure\Template\DoctrineTemplateResolver'
     App\AppSource\Infrastructure\GitHub\LatestCommitChecker: '@App\AppSource\Infrastructure\GitHub\GitHubLatestCommitChecker'
 
@@ -55,6 +56,9 @@ services:
 when@test:
     services:
         App\Project\Domain\Port\PodiumManifestReader: '@App\Project\Infrastructure\Manifest\InMemoryPodiumManifestReader'
+        App\Deploy\Domain\Port\PodiumManifestReader: '@App\Deploy\Infrastructure\Manifest\InMemoryPodiumManifestReader'
+        App\Deploy\Infrastructure\Manifest\InMemoryPodiumManifestReader:
+            public: true
         App\AppManager\Domain\Port\TemplateResolver: '@App\AppManager\Infrastructure\Template\InMemoryTemplateResolver'
         App\AppSource\Infrastructure\GitHub\LatestCommitChecker: '@App\AppSource\Infrastructure\GitHub\InMemoryLatestCommitChecker'
         App\AppSource\Infrastructure\GitHub\InMemoryLatestCommitChecker:

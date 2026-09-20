@@ -110,18 +110,25 @@ final class BuildJob
      * resultante y el yaml que el propio Job leyó y validó.
      *
      * @param array<string, string> $buildEnvVars
-     * @param array<string, string> $deployEnvVars
-     * @param array<string, string> $databaseDeclaration
      *
      * @return list<object>
      */
-    public function completeBuildJob(string $image, int $port, array $buildEnvVars, array $deployEnvVars, array $databaseDeclaration): array
+    public function completeBuildJob(string $image, int $port, array $buildEnvVars): array
     {
         $this->status = BuildStatus::Succeeded;
         $this->image = $image;
-        $this->yamlSnapshot = new BuildYamlSnapshot($buildEnvVars, $deployEnvVars, $databaseDeclaration);
+        $this->yamlSnapshot = new BuildYamlSnapshot($buildEnvVars);
 
-        $this->record(new BuildSucceeded($this->serviceName, $this->projectId, $this->version, $image, $port, $deployEnvVars, $databaseDeclaration));
+        $this->record(new BuildSucceeded(
+            $this->serviceName,
+            $this->projectId,
+            $this->version,
+            $image,
+            $port,
+            $this->commitId,
+            $this->repositoryUrl,
+            $this->provider,
+        ));
 
         return $this->releaseEvents();
     }

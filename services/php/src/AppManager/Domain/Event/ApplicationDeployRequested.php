@@ -7,8 +7,10 @@ namespace App\AppManager\Domain\Event;
 final readonly class ApplicationDeployRequested
 {
     /**
-     * @param array<string, string> $deployEnvVars
-     * @param array<string, string> $databaseDeclaration
+     * Lleva de dónde salió la imagen (`commitId`/`repositoryUrl`/`provider`)
+     * en lugar de las env vars y la base de datos: así Deploy lee del
+     * `podium.yaml` de esa misma revisión lo que necesita, sin que App Manager
+     * ni Build transporten datos que no son suyos.
      */
     public function __construct(
         public string $serviceName,
@@ -16,8 +18,9 @@ final readonly class ApplicationDeployRequested
         public string $version,
         public string $image,
         public int $port,
-        public array $deployEnvVars,
-        public array $databaseDeclaration,
+        public string $commitId,
+        public string $repositoryUrl,
+        public string $provider,
     ) {
     }
 }

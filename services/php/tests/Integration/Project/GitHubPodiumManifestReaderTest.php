@@ -6,6 +6,7 @@ namespace Tests\Integration\Project;
 
 use App\Project\Domain\ValueObject\DeclaredService;
 use App\Project\Infrastructure\Manifest\GitHubPodiumManifestReader;
+use App\Shared\Infrastructure\GitHub\PodiumManifestFetcher;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -40,7 +41,7 @@ final class GitHubPodiumManifestReaderTest extends TestCase
             ], \JSON_THROW_ON_ERROR), ['http_code' => 200]);
         });
 
-        $reader = new GitHubPodiumManifestReader($client, 'fake-token');
+        $reader = new GitHubPodiumManifestReader(new PodiumManifestFetcher($client, 'fake-token'));
 
         $declaredServices = $reader->read('https://github.com/team-a/app', 'abc123');
 
@@ -60,7 +61,7 @@ final class GitHubPodiumManifestReaderTest extends TestCase
     public function testReadThrowsWhenPodiumYamlDoesNotExist(): void
     {
         $client = new MockHttpClient(fn () => new MockResponse('', ['http_code' => 404]));
-        $reader = new GitHubPodiumManifestReader($client, 'fake-token');
+        $reader = new GitHubPodiumManifestReader(new PodiumManifestFetcher($client, 'fake-token'));
 
         $this->expectException(RuntimeException::class);
 
@@ -70,7 +71,7 @@ final class GitHubPodiumManifestReaderTest extends TestCase
     public function testReadThrowsForAnUnparseableRepositoryUrl(): void
     {
         $client = new MockHttpClient();
-        $reader = new GitHubPodiumManifestReader($client, 'fake-token');
+        $reader = new GitHubPodiumManifestReader(new PodiumManifestFetcher($client, 'fake-token'));
 
         $this->expectException(RuntimeException::class);
 

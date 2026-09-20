@@ -72,7 +72,7 @@ final class ApplicationLifecycleTest extends KernelTestCase
         self::assertCount(1, $buildRequested);
         self::assertInstanceOf(ApplicationBuildRequested::class, $buildRequested[0]->getMessage());
 
-        ($this->buildSucceededHandler)(new BuildSucceeded('backend', $this->projectId, $application->version(), 'registry/backend:rev-1', 3000, [], []));
+        ($this->buildSucceededHandler)(new BuildSucceeded('backend', $this->projectId, $application->version(), 'registry/backend:rev-1', 3000, 'rev-1', 'https://github.com/team/repo', 'github'));
         $application = $this->applications->get($application->id());
         self::assertSame(ApplicationState::Deploying, $application->state());
 
@@ -107,7 +107,7 @@ final class ApplicationLifecycleTest extends KernelTestCase
     {
         ($this->serviceDiscoveredHandler)(new ServiceDiscovered('worker', $this->projectId, 'go', 'none', 'rev-1', 'https://github.com/team/repo', 'github'));
         $application = $this->applications->findByProjectIdAndServiceName($this->projectId, 'worker');
-        ($this->buildSucceededHandler)(new BuildSucceeded('worker', $this->projectId, $application->version(), 'registry/worker:rev-1', 3000, [], []));
+        ($this->buildSucceededHandler)(new BuildSucceeded('worker', $this->projectId, $application->version(), 'registry/worker:rev-1', 3000, 'rev-1', 'https://github.com/team/repo', 'github'));
 
         ($this->deployFailedHandler)(new DeployFailed('worker', $this->projectId, $application->version(), 'health check failed', null));
 

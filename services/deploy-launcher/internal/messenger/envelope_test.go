@@ -53,8 +53,11 @@ func TestDecodeExtractsBodyFromRealPHPFixtureWithEmptyMapFields(t *testing.T) {
 	if len(req.EnvVars) != 0 {
 		t.Fatalf("expected empty envVars (decoded from a JSON array), got %v", req.EnvVars)
 	}
-	if len(req.DatabaseDeclaration) != 0 {
-		t.Fatalf("expected empty databaseDeclaration (decoded from a JSON array), got %v", req.DatabaseDeclaration)
+	// El envelope capturado es anterior a que Deploy resolviera la base de
+	// datos, así que no trae el campo: tiene que decodificarse como "sin base
+	// de datos" y no reventar.
+	if req.Database.Values()["mode"] != "none" {
+		t.Fatalf("expected mode none for an envelope with no database block, got %v", req.Database.Values()["mode"])
 	}
 }
 

@@ -7,8 +7,10 @@ namespace App\Build\Domain\Event;
 final readonly class BuildSucceeded
 {
     /**
-     * @param array<string, string> $deployEnvVars      Leídas de podium.yaml por el propio Job — hoy siempre vacío (ver build/model.md)
-     * @param array<string, string> $databaseDeclaration
+     * `commitId`/`repositoryUrl`/`provider` viajan porque Deploy necesita leer
+     * el `podium.yaml` de esa misma revisión. No son datos de despliegue que
+     * Build transporte por cuenta ajena: son de dónde salió esta imagen, que
+     * es precisamente lo que Build sabe.
      */
     public function __construct(
         public string $serviceName,
@@ -16,8 +18,9 @@ final readonly class BuildSucceeded
         public string $version,
         public string $image,
         public int $port,
-        public array $deployEnvVars,
-        public array $databaseDeclaration,
+        public string $commitId,
+        public string $repositoryUrl,
+        public string $provider,
     ) {
     }
 }

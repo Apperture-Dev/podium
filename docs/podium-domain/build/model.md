@@ -49,8 +49,6 @@ classDiagram
     class BuildYamlSnapshot {
         <<Value Object>>
         +buildEnvVars: Map~string, string~
-        +deployEnvVars: Map~string, string~
-        +databaseDeclaration: Map~string, string~
     }
 
     class BuildStatus {
@@ -118,7 +116,7 @@ Ni la señal de infraestructura ni la llamada a la API de Kubernetes cruzan como
 | El lanzador Go (consumidor de `BuildJobRequested`) **no se construye en esta sesión** — queda marcado para más adelante | Desplegar en el clúster real es sencillo con ArgoCD, así que el coste de sumarlo después es bajo; prioridad hoy es cerrar el dominio de Build en PHP |
 | **Primer `jobImage` real (2026-09-19)**: `services/build-runner` — imagen genérica (buildah + git + yq) que clona el repo, lee `podium.yaml` y elige `templates/{lang}-{framework}.Dockerfile` internamente; no hay una imagen por lenguaje, todos los `Template` pueden apuntar al mismo `jobImage` y diferenciarse solo por qué Dockerfile de plantilla seleccionan. Primera plantilla: `nodejs`/`nestjs` (`npm ci && npm run build`, arranca con `npm start`), sembrada vía `bin/console app:build:seed-templates` | Evita construir una imagen de build por lenguaje — el "Podium provee el Dockerfile de plantilla" de `build/discovery.md` se resuelve como un archivo más dentro de una única imagen genérica, no como N imágenes a mantener |
 | `completeBuildJob`/`failBuildJob` se disparan hoy vía un DTO local (`Application/Message/JobSucceeded`, `JobFailed`) sin productor real | Mismo patrón que `BuildSucceeded`/`BuildFailed` en App Manager antes de que Build existiera — el dominio queda completo y testeado aunque la señal de infraestructura real todavía no exista |
-| `BuildSucceeded` ya lleva `deployEnvVars`/`databaseDeclaration` (contrato ya publicado en `asyncapi.yaml`, campos opcionales) — vienen de `JobSucceeded` (el DTO local sin productor real, ver arriba), así que hoy siempre llegan vacíos | Sin plumbing especulativo nuevo: el shape ya estaba tipado antes de implementar Build, solo se rellena cuando el lanzador Go exista de verdad. App Manager tampoco los reenvía todavía (Deploy no existe) — mismo criterio que `app-manager/model.md` |
+| `BuildSucceeded` **ya no lleva** `deployEnvVars`/`databaseDeclaration`: lleva `commitId`/`repositoryUrl`/`provider` | Build no transporta datos que no son suyos. Lo que la aplicación necesita para correr lo lee Deploy del mismo `podium.yaml`, en la misma revisión; lo que Build sí sabe, y por eso publica, es de dónde salió la imagen. `BuildYamlSnapshot` se queda solo con `buildEnvVars` |
 | El registro de imágenes (destino del push) es configuración de infraestructura — variable de entorno del proceso que lanza el Job, no un aggregate | Sin comportamiento propio para el hackathon; idea de pivote futuro (registro propio del equipo, Podium como servicio de solo imagen+job) anotada sin construir |
 | El comando de arranque no es un campo — cada `Template` asume su propia convención. `BuildJobRequested.command` viaja siempre vacío (el `jobImage` usa su propio entrypoint) | Evita lógica condicional por lenguaje y el riesgo de inyección en un campo libre |
 | Campo `dockerfile` en `Template` — diferido | `jobImage` cubre la ejecución básica para el hackathon; más control de build queda para después |
@@ -132,7 +130,7 @@ Ni la señal de infraestructura ni la llamada a la API de Kubernetes cruzan como
 | Evento | Disparado por | Payload | Consumido por |
 |---|---|---|---|
 | `BuildJobRequested` | `startBuildJob` | `buildJobId`, `jobImage`, `command` (siempre `[]` hoy), `envVars` (`SERVICE_NAME`, `PROJECT_ID`, `TEMPLATE_ID`, `VERSION`, `COMMIT_ID`, `REPOSITORY_URL`, `PROVIDER`, `BUILD_JOB_ID`) | Lanzador Kubernetes (Go, diferido — sin consumidor real todavía) |
-| `BuildSucceeded` | `completeBuildJob` | `serviceName`, `projectId`, `version`, referencia a la imagen, `deployEnvVars`/`databaseDeclaration` (de `JobSucceeded` — hoy siempre vacíos, ver Decisiones de alcance) | App Manager, Deploy (vía `ApplicationDeployRequested`) |
+| `BuildSucceeded` | `completeBuildJob` | `serviceName`, `projectId`, `version`, referencia a la imagen, `port`, `commitId`, `repositoryUrl`, `provider` | App Manager, Deploy (vía `ApplicationDeployRequested`) |
 | `BuildFailed` | `failBuildJob` | `serviceName`, `projectId`, `version`, mensaje de error claro (yaml inválido o fallo de compilación — misma categoría) | App Manager, Notification, Remediation |
 
 ## Eventos consumidos
