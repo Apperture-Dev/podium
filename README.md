@@ -5,7 +5,7 @@ Plataforma de despliegue de HackBarna AI Summit 26: repo público → build → 
 ## Por dónde empezar
 
 1. **`context-map.md`** — el mapa completo: los seis Bounded Contexts, sus eventos cruzados, los invariantes que los relacionan, y las convenciones de modelado que se fueron fijando por el camino (mismo término en contextos distintos, comunicación siempre por evento, un id técnico separado del identificador de negocio, etc.). Empieza aquí.
-2. **`c4-diagrams.md`** — la misma información en C4: Nivel 1 (Podium en su contexto — GitHub, ArgoCD, el registro OCI, el clúster) y Nivel 2 (los contenedores dentro de Podium, un BC por contenedor).
+2. **`docs/podium-domain/c4-diagrams.md`** — la arquitectura **construida** en los cuatro niveles de C4: contexto, contenedores del namespace `hostium`, componentes de cada contenedor (los seis BCs dentro de `php`/`worker`, los dos lanzadores Go, el activator, el BFF de `web`) y código del agregado `Application`. Incluye el ciclo completo `git push` → URL y una tabla de lo que **no** existe todavía.
 3. Una carpeta por Bounded Context — el detalle de agregados, value objects, acciones y eventos de cada uno.
 
 ## Estado de cada Bounded Context
