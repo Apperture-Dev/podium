@@ -100,6 +100,7 @@ export default function ProyectoDetallePage({
                   key={application.serviceName}
                   application={application}
                   index={index}
+                  projectHash={detail.project.hash}
                 />
               ))}
             </div>

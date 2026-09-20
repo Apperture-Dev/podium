@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, Code, Tag } from "@phosphor-icons/react/dist/ssr";
+import { ArrowUpRight, Clock, Code, Tag } from "@phosphor-icons/react/dist/ssr";
 import type { Application } from "@/lib/api/applications";
 import { APPLICATION_STATE_TONES } from "@/lib/application-state-tones";
 import { avatarToneFor } from "@/lib/avatar-tones";
@@ -20,12 +20,19 @@ function initialsOf(serviceName: string): string {
     .join("");
 }
 
+/** {serviceName}.{hash}.apperture.dev is the real URL convention (see project/discovery.md). */
+function serviceUrl(application: Application, projectHash: string): string {
+  return `${application.serviceName}.${projectHash}.apperture.dev`;
+}
+
 export function ApplicationCard({
   application,
   index,
+  projectHash,
 }: {
   application: Application;
   index: number;
+  projectHash: string;
 }) {
   const stateTone = APPLICATION_STATE_TONES[application.state];
   const avatarTone = avatarToneFor(index);
@@ -52,6 +59,13 @@ export function ApplicationCard({
             {stateTone.label}
           </Badge>
         </div>
+        <div className="flex items-center gap-1 min-w-0 text-foreground/70">
+          <TruncatedText
+            text={serviceUrl(application, projectHash)}
+            render={<p className="text-sm truncate" />}
+          />
+          <ArrowUpRight className="size-3.5 shrink-0" />
+        </div>
         {application.hasPendingSourceChange && (
           <p className="text-xs text-muted-foreground">
             Hay un cambio en el repositorio pendiente de construir.
@@ -60,9 +74,12 @@ export function ApplicationCard({
       </CardContent>
       <CardFooter className="justify-between gap-3 border-t bg-transparent pt-3 text-xs text-muted-foreground">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex items-center gap-1 truncate">
+          <span className="flex items-center gap-1 min-w-0">
             <Code className="size-3.5 shrink-0" />
-            <span className="truncate">{application.framework}</span>
+            <TruncatedText
+              text={application.framework}
+              render={<span className="truncate" />}
+            />
           </span>
           <span className="flex shrink-0 items-center gap-1">
             <Tag className="size-3.5 shrink-0" />v{application.version}
