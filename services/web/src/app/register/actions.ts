@@ -17,20 +17,33 @@ export type RegisterState = {
 
 /** `admin-cli` in the `master` realm — see the comment on the admin config constants. */
 async function getAdminToken(): Promise<string | null> {
-  const response = await fetch(KEYCLOAK_ADMIN_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "password",
-      client_id: "admin-cli",
-      username: KEYCLOAK_ADMIN_USERNAME,
-      password: KEYCLOAK_ADMIN_PASSWORD,
-    }),
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(KEYCLOAK_ADMIN_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "password",
+        client_id: "admin-cli",
+        username: KEYCLOAK_ADMIN_USERNAME,
+        password: KEYCLOAK_ADMIN_PASSWORD,
+      }),
+      cache: "no-store",
+    });
+  } catch {
+    // Keycloak caído: null es la señal de fallo que ya usa esta función, así
+    // que el mensaje "No se pudo conectar con Keycloak..." de register()
+    // (L72-76) por fin se muestra también en este caso, no solo cuando
+    // Keycloak rechaza las credenciales admin.
+    return null;
+  }
   if (!response.ok) return null;
-  const { access_token: accessToken } = (await response.json()) as { access_token: string };
-  return accessToken;
+  try {
+    const { access_token: accessToken } = (await response.json()) as { access_token: string };
+    return accessToken;
+  } catch {
+    return null;
+  }
 }
 
 /** Cheap format check — no verification link, no confirmation email, just shape. */
@@ -112,17 +125,29 @@ export async function register(_prevState: RegisterState, formData: FormData): P
     return { error: "No se pudo crear el usuario.", success: false };
   }
 
-  const tokenResponse = await fetch(KEYCLOAK_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "password",
-      client_id: KEYCLOAK_CLIENT_ID,
-      username: email,
-      password,
-    }),
-    cache: "no-store",
-  });
+  // El usuario ya está creado en Keycloak en este punto: un fallo de aquí en
+  // adelante no debe perderse como un 500, porque "usuario creado pero login
+  // falló" necesita decírselo explícitamente para que no intente registrarse
+  // otra vez (409 más abajo) sin saber que ya existe.
+  let tokenResponse: Response;
+  try {
+    tokenResponse = await fetch(KEYCLOAK_TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "password",
+        client_id: KEYCLOAK_CLIENT_ID,
+        username: email,
+        password,
+      }),
+      cache: "no-store",
+    });
+  } catch {
+    return {
+      error: "Usuario creado, pero no se pudo iniciar sesión automáticamente. Entra manualmente.",
+      success: false,
+    };
+  }
 
   if (!tokenResponse.ok) {
     return {
@@ -131,10 +156,21 @@ export async function register(_prevState: RegisterState, formData: FormData): P
     };
   }
 
-  const { access_token: accessToken, expires_in: expiresIn } = (await tokenResponse.json()) as {
-    access_token: string;
-    expires_in: number;
-  };
+  let accessToken: string;
+  let expiresIn: number;
+  try {
+    const parsed = (await tokenResponse.json()) as {
+      access_token: string;
+      expires_in: number;
+    };
+    accessToken = parsed.access_token;
+    expiresIn = parsed.expires_in;
+  } catch {
+    return {
+      error: "Usuario creado, pero no se pudo iniciar sesión automáticamente. Entra manualmente.",
+      success: false,
+    };
+  }
   await setSessionCookie(accessToken, expiresIn);
 
   return { error: null, success: true };

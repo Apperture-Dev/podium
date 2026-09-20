@@ -36,7 +36,14 @@ export async function getJson<TResponse>(path: string): Promise<TResponse> {
   if (!response.ok) {
     throw new ApiError(await parseErrorMessage(response), response.status);
   }
-  return (await response.json()) as TResponse;
+  try {
+    return (await response.json()) as TResponse;
+  } catch {
+    throw new ApiError(
+      "La API devolvió una respuesta que no es JSON válido.",
+      response.status,
+    );
+  }
 }
 
 export async function postJson<TResponse>(
@@ -58,5 +65,12 @@ export async function postJson<TResponse>(
   if (!response.ok) {
     throw new ApiError(await parseErrorMessage(response), response.status);
   }
-  return (await response.json()) as TResponse;
+  try {
+    return (await response.json()) as TResponse;
+  } catch {
+    throw new ApiError(
+      "La API devolvió una respuesta que no es JSON válido.",
+      response.status,
+    );
+  }
 }

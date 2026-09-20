@@ -9,18 +9,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
-  const body = (await request.json()) as {
-    name?: string;
-    repositoryUrl?: string;
-    teamId?: string;
-  };
+  let body: { name?: string; repositoryUrl?: string; teamId?: string };
+  try {
+    body = (await request.json()) as {
+      name?: string;
+      repositoryUrl?: string;
+      teamId?: string;
+    };
+  } catch {
+    return NextResponse.json(
+      { error: "El cuerpo de la petición no es JSON válido." },
+      { status: 400 },
+    );
+  }
 
-  const response = await fetch(`${SYMFONY_API_BASE_URL}/api/projects`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${SYMFONY_API_BASE_URL}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "No se pudo contactar con la API." },
+      { status: 502 },
+    );
+  }
 
   const payload = await response.json().catch(() => null);
   return NextResponse.json(payload, { status: response.status });

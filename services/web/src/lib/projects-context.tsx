@@ -79,11 +79,22 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       error,
       loadProjectDetail: async (teamId: string, projectId: string) => {
         const cached = projects.find((p) => p.id === projectId);
-        const [project, applications] = await Promise.all([
-          cached ? Promise.resolve(cached) : getProject(teamId, projectId),
-          listApplications(teamId, projectId),
-        ]);
-        return { project, applications };
+        try {
+          const [project, applications] = await Promise.all([
+            cached ? Promise.resolve(cached) : getProject(teamId, projectId),
+            listApplications(teamId, projectId),
+          ]);
+          return { project, applications };
+        } catch (err) {
+          // getProject/listApplications ya lanzan ApiError para los fallos de
+          // red reales — esto solo evita que un rechazo se escape sin pasar
+          // por la misma convención que usa el resto del módulo, en vez de
+          // depender de que cada futuro llamante recuerde poner su propio
+          // .catch (hoy solo hay uno, en projects/[id]/page.tsx).
+          throw err instanceof ApiError
+            ? err
+            : new ApiError("No se pudo cargar el proyecto.");
+        }
       },
     }),
     [projects, isLoading, error],

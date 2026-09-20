@@ -54,10 +54,21 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     return { error: "Email o contraseña incorrectos.", success: false };
   }
 
-  const { access_token: accessToken, expires_in: expiresIn } = (await response.json()) as {
-    access_token: string;
-    expires_in: number;
-  };
+  let accessToken: string;
+  let expiresIn: number;
+  try {
+    const parsed = (await response.json()) as {
+      access_token: string;
+      expires_in: number;
+    };
+    accessToken = parsed.access_token;
+    expiresIn = parsed.expires_in;
+  } catch {
+    return {
+      error: "Keycloak respondió con algo que no es JSON válido.",
+      success: false,
+    };
+  }
 
   await setSessionCookie(accessToken, expiresIn);
 
