@@ -232,6 +232,34 @@ build-build-launcher:
       changes:
         - services/build-launcher/**/*
 
+deploy-build-launcher:
+  extends: .deploy-base
+  needs:
+    - job: build-build-launcher
+      artifacts: true
+  script:
+    - git clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git" deploy-repo
+    - cd deploy-repo/deploy/build-launcher
+    # Clave = el `name` del bloque images del kustomization (el placeholder),
+    # no la imagen ya renombrada: kustomize casa por el nombre original.
+    - |
+      if [ -n "$IMAGE_DIGEST" ]; then
+        kustomize edit set image "REGISTRY_PLACEHOLDER/build-launcher=$CI_REGISTRY_IMAGE/build-launcher:$CI_COMMIT_SHORT_SHA@$IMAGE_DIGEST"
+      else
+        kustomize edit set image "REGISTRY_PLACEHOLDER/build-launcher=$CI_REGISTRY_IMAGE/build-launcher:$CI_COMMIT_SHORT_SHA"
+      fi
+    - git add kustomization.yaml
+    - git diff --cached --quiet && echo "Sin cambios, nada que commitear" && exit 0
+    - |
+      git commit -m "deploy: build-launcher@$CI_COMMIT_SHORT_SHA [skip ci]
+
+      Pipeline: $CI_PIPELINE_ID  Commit: $CI_COMMIT_SHA"
+    - for i in 1 2 3; do git push origin HEAD:main && break || git pull --rebase origin main; done
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/build-launcher/**/*
+
 build-build-runner:
   extends: .buildah-base
   stage: build
@@ -316,6 +344,34 @@ build-deploy-launcher:
   artifacts:
     reports:
       dotenv: build.env
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/deploy-launcher/**/*
+
+deploy-deploy-launcher:
+  extends: .deploy-base
+  needs:
+    - job: build-deploy-launcher
+      artifacts: true
+  script:
+    - git clone "https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/${CI_PROJECT_PATH}.git" deploy-repo
+    - cd deploy-repo/deploy/deploy-launcher
+    # Clave = el `name` del bloque images del kustomization (el placeholder),
+    # no la imagen ya renombrada: kustomize casa por el nombre original.
+    - |
+      if [ -n "$IMAGE_DIGEST" ]; then
+        kustomize edit set image "REGISTRY_PLACEHOLDER/deploy-launcher=$CI_REGISTRY_IMAGE/deploy-launcher:$CI_COMMIT_SHORT_SHA@$IMAGE_DIGEST"
+      else
+        kustomize edit set image "REGISTRY_PLACEHOLDER/deploy-launcher=$CI_REGISTRY_IMAGE/deploy-launcher:$CI_COMMIT_SHORT_SHA"
+      fi
+    - git add kustomization.yaml
+    - git diff --cached --quiet && echo "Sin cambios, nada que commitear" && exit 0
+    - |
+      git commit -m "deploy: deploy-launcher@$CI_COMMIT_SHORT_SHA [skip ci]
+
+      Pipeline: $CI_PIPELINE_ID  Commit: $CI_COMMIT_SHA"
+    - for i in 1 2 3; do git push origin HEAD:main && break || git pull --rebase origin main; done
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:

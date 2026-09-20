@@ -38,6 +38,14 @@ reescribe `spec.source.targetRevision` de su `Application` además del `valuesOb
 tenant renderizaría para siempre la versión del chart con la que nació, en silencio — nada falla,
 simplemente despliega la plantilla antigua.
 
+## Despliegue de la imagen
+
+Lo automatiza el job `deploy-deploy-launcher` de `.gitlab-ci.yml`: tras construir, escribe en el
+`kustomization.yaml` de este directorio el tag por SHA con su digest y commitea `[skip ci]`, y
+ArgoCD aplica el cambio. Antes el manifiesto apuntaba fijo a `:latest`, así que una imagen nueva
+no cambiaba nada del PodSpec y el rollout había que provocarlo a mano — con la carrera añadida de
+no saber si el registro ya tenía la imagen publicada.
+
 ## Un mensaje que falla deja el deploy colgado — y nadie lo relee
 
 Aprendido en el primer despliegue real de un repo con dos servicios. Si el lanzador no puede

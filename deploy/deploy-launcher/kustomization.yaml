@@ -6,9 +6,9 @@ resources:
   - serviceaccount.yaml
   - argocd-rbac.yaml
   - deployment.yaml
-# Tag inicial: actualizar a mano tras el primer build de CI (o dejar que un
-# futuro job deploy-deploy-launcher lo automatice, mismo patrón que
-# deploy-php/web/activator/build-launcher — ver .gitlab-ci.yml).
+# Lo actualiza el job deploy-deploy-launcher de .gitlab-ci.yml en cada cambio bajo
+# services/deploy-launcher/: escribe aquí el tag por SHA (con digest) y commitea, y
+# ArgoCD hace el rollout. El tag de abajo es solo el punto de partida.
 images:
   - name: REGISTRY_PLACEHOLDER/deploy-launcher
     newName: registry.gitlab.com/apperturedev/podium/deploy-launcher
