@@ -38,7 +38,7 @@ Señalizar el resultado (`JobSucceeded`/`JobFailed`) queda diferido — ver
 
 | lang | framework | Convención | Puerto |
 |---|---|---|---|
-| `nodejs` | `nestjs` | `npm ci && npm run build`, arranca con `npm start` | 3000 |
+| `nodejs` | `nestjs` | `npm ci && npm run build`, arranca con `npm run start:prod` (`npm start` en Nest es el CLI en modo desarrollo) | 3000 |
 | `nodejs` | `nextjs` | `npm ci && npm run build`, arranca con `npm start` (`next start`); sin asumir `output: "standalone"` | 3000 |
 | `nodejs` | `react` | `npm ci && npm run build`; el estático resultante (`dist/`, o `build/` si es CRA) lo sirve nginx, sin Node en runtime | 80 |
 | `nodejs` | `vue` | Igual que `react`: build de Vite y nginx sirviendo `dist/` | 80 |
