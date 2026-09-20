@@ -40,3 +40,10 @@ Señalizar el resultado (`JobSucceeded`/`JobFailed`) queda diferido — ver
 |---|---|---|
 | `nodejs` | `nestjs` | `npm ci && npm run build`, arranca con `npm start` |
 | `nodejs` | `nextjs` | `npm ci && npm run build`, arranca con `npm start` (`next start`); sin asumir `output: "standalone"` |
+
+## Publicación (CI)
+
+El job `build-build-runner` de `.gitlab-ci.yml` publica esta imagen a
+`$CI_REGISTRY_IMAGE/build-runner` en cada cambio bajo `services/build-runner/**/*`
+en la rama por defecto — igual que `build-web`, sin job de test (sin suite propia
+todavía) ni `--target prod` (Dockerfile de una sola etapa).
