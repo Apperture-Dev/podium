@@ -43,7 +43,7 @@ func New(client dynamic.Interface, cfg argospec.Config, pollInterval time.Durati
 // and never neither, unless ctx is cancelled or the Kubernetes API itself
 // errors (err != nil).
 func (l *Launcher) Handle(ctx context.Context, req events.DeployAttemptRequested) (succeeded *events.HealthCheckSucceeded, failed *events.HealthCheckExhausted, err error) {
-	name := "tenant-" + req.Hash
+	name := argospec.ApplicationName(req)
 	apps := l.client.Resource(ApplicationGVR).Namespace(l.cfg.ArgoCDNamespace)
 
 	existing, err := apps.Get(ctx, name, metav1.GetOptions{})
@@ -89,6 +89,15 @@ func (l *Launcher) waitForHealthy(ctx context.Context, name string) (healthy boo
 
 	for attempts = 1; attempts <= l.maxAttempts; attempts++ {
 		app, err := apps.Get(ctx, name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			// La Application desapareció a mitad de sondeo (borrado manual,
+			// p.ej. al recrear un tenant con una versión de chart nueva) —
+			// señal terminal legítima, no un error de infraestructura:
+			// nunca va a volver a existir sola, así que agota como
+			// cualquier otro "nunca se puso sana" en vez de dejar el
+			// intento colgado sin ack para siempre (visto en vivo).
+			return false, attempts, nil
+		}
 		if err != nil {
 			return false, attempts, fmt.Errorf("get application %s: %w", name, err)
 		}

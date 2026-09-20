@@ -92,6 +92,49 @@ func withHealthSequence(client *dynamicfake.FakeDynamicClient, name string, stat
 	})
 }
 
+// Handle() calcula el nombre de la Application una vez, para el Get de
+// existencia Y para el polling de salud — si esos dos usos divergen del
+// nombre que argospec.Build() realmente usó para crear el objeto (bug real,
+// visto en vivo: creaba "tenant-{serviceName}-{hash}" pero el polling
+// buscaba "tenant-{hash}"), waitForHealthy sondea un nombre que nunca va a
+// existir y Handle() nunca produce ni HealthCheckSucceeded ni
+// HealthCheckExhausted — el intento se queda colgado para siempre.
+func TestHandleGetsAndPollsTheSameNameArgospecCreated(t *testing.T) {
+	client := newFakeClient()
+	l := launcher.New(client, testConfig(), time.Millisecond, 5)
+
+	wantName := "tenant-backend-abc12345"
+	getCalls := 0
+	client.PrependReactor("get", "applications", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		getCalls++
+		getAction := action.(k8stesting.GetActionImpl)
+		if getAction.GetName() != wantName {
+			t.Errorf("Get #%d used name %q, want %q", getCalls, getAction.GetName(), wantName)
+		}
+		if getCalls == 1 {
+			return true, nil, apierrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "applications"}, getAction.GetName())
+		}
+		app := &unstructured.Unstructured{Object: map[string]any{
+			"status": map[string]any{"health": map[string]any{"status": "Healthy"}},
+		}}
+		return true, app, nil
+	})
+
+	succeeded, failed, err := l.Handle(context.Background(), testRequest())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if failed != nil {
+		t.Fatalf("expected no HealthCheckExhausted, got %+v", failed)
+	}
+	if succeeded == nil {
+		t.Fatal("expected HealthCheckSucceeded, got nil")
+	}
+	if getCalls < 2 {
+		t.Fatalf("expected at least 2 Get calls (existence check + poll), got %d", getCalls)
+	}
+}
+
 func TestHandleCreatesTheApplicationWhenItDoesNotExist(t *testing.T) {
 	client := newFakeClient()
 	l := launcher.New(client, testConfig(), time.Millisecond, 5)
@@ -102,7 +145,7 @@ func TestHandleCreatesTheApplicationWhenItDoesNotExist(t *testing.T) {
 	client.PrependReactor("get", "applications", func(action k8stesting.Action) (bool, runtime.Object, error) {
 		getCalls++
 		if getCalls == 1 {
-			return true, nil, apierrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "applications"}, "tenant-abc12345")
+			return true, nil, apierrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "applications"}, "tenant-backend-abc12345")
 		}
 		app := &unstructured.Unstructured{Object: map[string]any{
 			"status": map[string]any{"health": map[string]any{"status": "Healthy"}},
@@ -128,7 +171,7 @@ func TestHandleUpdatesOnlyTheValuesObjectWhenTheApplicationAlreadyExists(t *test
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "Application",
 		"metadata": map[string]any{
-			"name":      "tenant-abc12345",
+			"name":      "tenant-backend-abc12345",
 			"namespace": "argocd",
 			"labels":    map[string]any{"custom-label": "keep-me"},
 		},
@@ -160,7 +203,7 @@ func TestHandleUpdatesOnlyTheValuesObjectWhenTheApplicationAlreadyExists(t *test
 		t.Fatal("expected HealthCheckSucceeded")
 	}
 
-	got, err := client.Resource(launcher.ApplicationGVR).Namespace("argocd").Get(context.Background(), "tenant-abc12345", metav1.GetOptions{})
+	got, err := client.Resource(launcher.ApplicationGVR).Namespace("argocd").Get(context.Background(), "tenant-backend-abc12345", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error reading back application: %v", err)
 	}
@@ -175,8 +218,8 @@ func TestHandleUpdatesOnlyTheValuesObjectWhenTheApplicationAlreadyExists(t *test
 }
 
 func TestHandleReturnsHealthCheckSucceededOncePollingSeesHealthy(t *testing.T) {
-	client := newSeededClient("tenant-abc12345")
-	withHealthSequence(client, "tenant-abc12345", []string{"Progressing", "Progressing", "Healthy"})
+	client := newSeededClient("tenant-backend-abc12345")
+	withHealthSequence(client, "tenant-backend-abc12345", []string{"Progressing", "Progressing", "Healthy"})
 	l := launcher.New(client, testConfig(), time.Millisecond, 10)
 
 	succeeded, failed, err := l.Handle(context.Background(), testRequest())
@@ -192,8 +235,8 @@ func TestHandleReturnsHealthCheckSucceededOncePollingSeesHealthy(t *testing.T) {
 }
 
 func TestHandleReturnsHealthCheckExhaustedWhenNeverHealthy(t *testing.T) {
-	client := newSeededClient("tenant-abc12345")
-	withHealthSequence(client, "tenant-abc12345", []string{"Degraded"})
+	client := newSeededClient("tenant-backend-abc12345")
+	withHealthSequence(client, "tenant-backend-abc12345", []string{"Degraded"})
 	l := launcher.New(client, testConfig(), time.Millisecond, 3)
 
 	succeeded, failed, err := l.Handle(context.Background(), testRequest())
@@ -211,5 +254,43 @@ func TestHandleReturnsHealthCheckExhaustedWhenNeverHealthy(t *testing.T) {
 	}
 	if failed.RetryCount == nil || *failed.RetryCount != 3 {
 		t.Fatalf("expected retryCount=3, got %v", failed.RetryCount)
+	}
+}
+
+// Visto en vivo: borrar manualmente la Application (p.ej. al recrear un
+// tenant con una versión de chart nueva) MIENTRAS deploy-launcher estaba a
+// mitad de sondear su salud dejaba el intento colgado para siempre — Get
+// devolvía NotFound, waitForHealthy lo propagaba como error, Handle()
+// nunca producía ni HealthCheckSucceeded ni HealthCheckExhausted, y el
+// mensaje se quedaba sin ack en el stream indefinidamente (confirmado con
+// XPENDING contra el clúster real). Un NotFound a mitad de sondeo es una
+// señal terminal legítima — la Application ya no existe, seguir
+// reintentando no tiene sentido — así que debe agotar como cualquier otro
+// caso de "nunca se puso sana", no como un error de infraestructura.
+func TestHandleReturnsHealthCheckExhaustedWhenTheApplicationIsDeletedMidPoll(t *testing.T) {
+	client := newSeededClient("tenant-backend-abc12345")
+	call := 0
+	client.PrependReactor("get", "applications", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		call++
+		if call == 1 {
+			return false, nil, nil // existence check dentro de Handle: deja pasar al Update
+		}
+		return true, nil, apierrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "applications"}, "tenant-backend-abc12345")
+	})
+
+	l := launcher.New(client, testConfig(), time.Millisecond, 3)
+
+	succeeded, failed, err := l.Handle(context.Background(), testRequest())
+	if err != nil {
+		t.Fatalf("expected no error (NotFound mid-poll is a terminal outcome, not an infra error), got %v", err)
+	}
+	if succeeded != nil {
+		t.Fatalf("expected no HealthCheckSucceeded, got %+v", succeeded)
+	}
+	if failed == nil {
+		t.Fatal("expected HealthCheckExhausted")
+	}
+	if failed.DeployAttemptID != testRequest().DeployAttemptID {
+		t.Fatalf("got deployAttemptId %q", failed.DeployAttemptID)
 	}
 }

@@ -36,7 +36,7 @@ func Build(req events.DeployAttemptRequested, cfg Config) *unstructured.Unstruct
 			"apiVersion": "argoproj.io/v1alpha1",
 			"kind":       "Application",
 			"metadata": map[string]any{
-				"name":      "tenant-" + tenantSlug(req),
+				"name":      ApplicationName(req),
 				"namespace": cfg.ArgoCDNamespace,
 			},
 			"spec": map[string]any{
@@ -96,6 +96,16 @@ func valuesObject(req events.DeployAttemptRequested, cfg Config, repository, tag
 // confirmado contra el certificado real.
 func tenantSlug(req events.DeployAttemptRequested) string {
 	return req.ServiceName + "-" + req.Hash
+}
+
+// ApplicationName is the single source of truth for the ArgoCD Application's
+// name — exported so launcher.Handle can Get/poll the exact same object
+// Build creates, instead of recomputing its own (previously diverging: a
+// real bug where Handle polled "tenant-{hash}" while Build created
+// "tenant-{serviceName}-{hash}", so the health check always polled an
+// object that never existed and the attempt never resolved).
+func ApplicationName(req events.DeployAttemptRequested) string {
+	return "tenant-" + tenantSlug(req)
 }
 
 // splitImage splits "repo/path:tag" on the LAST colon — a registry
