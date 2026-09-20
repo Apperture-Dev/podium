@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: build-launcher
+---
+# A diferencia del activator, este lanzador solo crea/observa Jobs dentro de
+# su propio namespace (los Jobs de build no son de un tenant que aparece en
+# caliente en otro namespace) — un Role namespaced basta, sin necesidad de
+# ClusterRole. Nunca se concede nada sobre Deployments/Services/Ingresses ni
+# sobre secrets — "pods" es solo para leer logs/eventos en diagnóstico de
+# fallos, sin exec.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: build-launcher
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: build-launcher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: build-launcher
+subjects:
+  - kind: ServiceAccount
+    name: build-launcher

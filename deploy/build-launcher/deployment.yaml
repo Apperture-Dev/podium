@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: build-launcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: build-launcher
+  template:
+    metadata:
+      labels:
+        app: build-launcher
+    spec:
+      serviceAccountName: build-launcher
+      containers:
+        - name: build-launcher
+          image: REGISTRY_PLACEHOLDER/build-launcher:latest
+          env:
+            # Redis vive en el namespace "hostium" (mismo que consume php) —
+            # nombre corto de Service no basta desde otro namespace.
+            - name: REDIS_ADDR
+              value: "redis-master.hostium.svc.cluster.local:6379"
+            - name: BUILD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: IMAGE_REGISTRY
+              value: "registry.apperture.dev"
+            - name: REGISTRY_SECRET_NAME
+              value: "zot-pull-secret"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
