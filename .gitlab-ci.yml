@@ -234,7 +234,12 @@ build-build-launcher:
 
 package-podium-app-chart:
   stage: build
-  image: alpine/helm:latest
+  # alpine/helm fija ENTRYPOINT ["helm"] — mismo problema que ya vimos con
+  # alpine/git ("git sh -c '<script>'" en vez de "sh -c '<script>'"). Aquí
+  # el runner intentaba "helm sh -c '<script>'" -> "unknown command sh".
+  image:
+    name: alpine/helm:latest
+    entrypoint: [""]
   script:
     - echo "$ZOT_REGISTRY_PASSWORD" | helm registry login registry.apperture.dev -u "$ZOT_REGISTRY_USER" --password-stdin
     - helm package helm/podium-app
