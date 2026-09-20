@@ -85,6 +85,9 @@ final class Project
                 $this->id->toString(),
                 $service->lang,
                 $service->framework,
+                $revision,
+                $repositoryUrl,
+                $provider,
             ));
         }
 

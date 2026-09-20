@@ -23,6 +23,9 @@ final readonly class ServiceDiscoveredHandler
             $message->projectId,
             $message->lang,
             $message->framework,
+            $message->revision,
+            $message->repositoryUrl,
+            $message->provider,
         );
     }
 }
