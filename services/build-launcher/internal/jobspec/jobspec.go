@@ -11,6 +11,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	"github.com/Apperture-Dev/podium/services/build-launcher/internal/events"
 )
@@ -71,6 +72,14 @@ func Build(req events.BuildJobRequested, cfg Config) *batchv1.Job {
 							Env:     env(req.EnvVars, cfg),
 							VolumeMounts: []corev1.VolumeMount{
 								{Name: "registry-auth", MountPath: registryAuthMountPath, ReadOnly: true},
+							},
+							// buildah necesita montar overlayfs para construir capas —
+							// en un pod sin privilegios revienta con "failed to make
+							// mount private: permission denied" (visto contra el
+							// clúster real). Mismo motivo por el que .buildah-base en
+							// .gitlab-ci.yml corre en un runner con acceso elevado.
+							SecurityContext: &corev1.SecurityContext{
+								Privileged: ptr.To(true),
 							},
 						},
 					},

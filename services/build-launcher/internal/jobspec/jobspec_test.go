@@ -145,6 +145,15 @@ func TestBuildPullsTheJobImageWithTheGitLabRegistrySecret(t *testing.T) {
 	}
 }
 
+func TestBuildRunsPrivilegedSinceBuildahNeedsOverlayMounts(t *testing.T) {
+	job := jobspec.Build(testRequest(), testConfig())
+
+	container := job.Spec.Template.Spec.Containers[0]
+	if container.SecurityContext == nil || container.SecurityContext.Privileged == nil || !*container.SecurityContext.Privileged {
+		t.Fatal("expected the build container to run privileged (buildah needs overlay mounts unavailable to an unprivileged pod)")
+	}
+}
+
 func TestBuildSetsTTLAndNeverRestarts(t *testing.T) {
 	job := jobspec.Build(testRequest(), testConfig())
 
