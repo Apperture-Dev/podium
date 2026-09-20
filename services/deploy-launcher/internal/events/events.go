@@ -48,9 +48,13 @@ type DeployAttemptRequested struct {
 // Mode is "none", "url" or "parts"; an absent block unmarshals to the zero
 // value, which Values() reports as "none".
 type DatabaseDeclaration struct {
-	Mode   string            `json:"mode"`
-	UrlVar string            `json:"urlVar"`
-	Vars   map[string]string `json:"vars"`
+	Mode   string `json:"mode"`
+	UrlVar string `json:"urlVar"`
+	// FlexibleMap por la misma razón que EnvVars, arriba: un servicio sin
+	// base de datos llega con "vars": [], porque PHP serializa un array
+	// asociativo vacío como array JSON. Con un map pelado, encoding/json
+	// rechaza el mensaje entero y el deploy se queda sin Application.
+	Vars FlexibleMap `json:"vars"`
 }
 
 // Values renders the declaration as the chart's `database` values. The map is

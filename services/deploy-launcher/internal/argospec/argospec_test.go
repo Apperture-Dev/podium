@@ -207,7 +207,7 @@ func TestBuildCopiesTheResolvedPartsDatabase(t *testing.T) {
 	request := testRequest()
 	request.Database = events.DatabaseDeclaration{
 		Mode: "parts",
-		Vars: map[string]string{"dbname": "APP_DATABASE", "username": "APP_DATABASE_USER"},
+		Vars: events.FlexibleMap{"dbname": "APP_DATABASE", "username": "APP_DATABASE_USER"},
 	}
 
 	values := argospec.ValuesObject(request, testConfig())
