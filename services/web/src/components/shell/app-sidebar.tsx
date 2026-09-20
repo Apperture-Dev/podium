@@ -95,13 +95,17 @@ export function AppSidebar() {
       <SidebarHeader className="px-4 py-4 group-data-[collapsible=icon]:px-0">
         <Link
           href="/"
-          className="flex items-center gap-2 font-heading font-semibold group-data-[collapsible=icon]:justify-center"
+          className="flex items-center font-heading font-semibold group-data-[collapsible=icon]:justify-center"
         >
-          <img src="/logo-mark.svg" alt="" className="h-7 w-7 shrink-0" />
           <img
-            src="/logo-wordmark.svg"
+            src="/logo-lockup.svg"
             alt="Hostium"
             className="h-[22.6px] w-auto group-data-[collapsible=icon]:hidden"
+          />
+          <img
+            src="/logo-mark.svg"
+            alt="Hostium"
+            className="hidden h-7 w-7 shrink-0 group-data-[collapsible=icon]:block"
           />
         </Link>
       </SidebarHeader>

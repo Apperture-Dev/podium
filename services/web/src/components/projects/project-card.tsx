@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Clock, Code, CubeFocus, Tag } from "@phosphor-icons/react/dist/ssr";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CubeFocus } from "@phosphor-icons/react/dist/ssr";
 import type { Project } from "@/lib/api/projects";
-import type { Application } from "@/lib/api/applications";
 import { avatarToneFor } from "@/lib/avatar-tones";
-import { relativeTimeFromNow } from "@/lib/relative-time";
+import { mockProjectDescription } from "@/lib/mock-project-description";
 import { TruncatedText } from "@/components/ui/truncated-text";
 
 /** {hash}.apperture.dev is the real URL convention (see hackathon-plan). No domain field on Project yet. */
@@ -14,12 +13,9 @@ function primaryDomain(project: Project): string {
 
 export function ProjectCard({
   project,
-  application,
   index,
 }: {
   project: Project;
-  /** Primer Application del Project — representa framework y versión en la card (ver Figma). */
-  application?: Application;
   index: number;
 }) {
   const tone = avatarToneFor(index);
@@ -45,30 +41,10 @@ export function ProjectCard({
           </div>
         </CardHeader>
         <CardContent>
-          <TruncatedText
-            text={project.repositoryUrl.replace(/^https?:\/\//, "")}
-            render={<p className="text-xs text-muted-foreground truncate" />}
-          />
+          <p className="line-clamp-2 text-xs text-muted-foreground">
+            {mockProjectDescription(index)}
+          </p>
         </CardContent>
-        <CardFooter className="justify-between gap-3 border-t bg-transparent pt-3 text-xs text-muted-foreground">
-          <div className="flex min-w-0 items-center gap-3">
-            {application && (
-              <>
-                <span className="flex items-center gap-1 truncate">
-                  <Code className="size-3.5 shrink-0" />
-                  <span className="truncate">{application.framework}</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-1">
-                  <Tag className="size-3.5 shrink-0" />v{application.version}
-                </span>
-              </>
-            )}
-          </div>
-          <span className="flex shrink-0 items-center gap-1">
-            <Clock className="size-3.5 shrink-0" />
-            {relativeTimeFromNow(project.createdAt)}
-          </span>
-        </CardFooter>
       </Card>
     </Link>
   );

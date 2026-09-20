@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { CubeFocus } from "@phosphor-icons/react";
+import { ArrowUpRight, CubeFocus } from "@phosphor-icons/react";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageBreadcrumb } from "@/components/shell/page-header";
 import { ApplicationCard } from "@/components/projects/application-card";
@@ -9,6 +9,7 @@ import { useTeam } from "@/lib/team-context";
 import { useProjects, type ProjectDetail } from "@/lib/projects-context";
 import { ApiError } from "@/lib/api/client";
 import { avatarToneFor } from "@/lib/avatar-tones";
+import { mockProjectDescription } from "@/lib/mock-project-description";
 
 export default function ProyectoDetallePage({
   params,
@@ -62,22 +63,29 @@ export default function ProyectoDetallePage({
 
       {detail && (
         <>
-          <div className="flex items-start gap-4 mb-8">
-            <div
-              className="flex size-14 shrink-0 items-center justify-center"
-              style={{ backgroundColor: tone.bg }}
-            >
-              <CubeFocus className="size-6" style={{ color: tone.fg }} />
+          <div className="mb-8">
+            <div className="flex items-start gap-4">
+              <div
+                className="flex size-14 shrink-0 items-center justify-center"
+                style={{ backgroundColor: tone.bg }}
+              >
+                <CubeFocus className="size-6" style={{ color: tone.fg }} />
+              </div>
+              <div>
+                <h1 className="text-2xl">{detail.project.name}</h1>
+                <p className="flex items-center gap-1 text-base mt-1">
+                  {detail.project.hash}.apperture.dev
+                  <ArrowUpRight className="size-4" />
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl">{detail.project.name}</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {detail.project.repositoryUrl}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {detail.project.hash}.apperture.dev
-              </p>
-            </div>
+            <p className="text-base text-muted-foreground mt-4">
+              {mockProjectDescription(projectIndex === -1 ? 0 : projectIndex)}
+            </p>
+            <p className="inline-flex items-center gap-2 text-xs text-muted-foreground bg-sidebar border border-foreground/20 rounded-md px-3 py-1.5 mt-4">
+              <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground" />
+              {detail.project.repositoryUrl}
+            </p>
           </div>
 
           <h2 className="text-xl mb-4">Aplicaciones</h2>
@@ -87,10 +95,11 @@ export default function ProyectoDetallePage({
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {detail.applications.map((application) => (
+              {detail.applications.map((application, index) => (
                 <ApplicationCard
                   key={application.serviceName}
                   application={application}
+                  index={index}
                 />
               ))}
             </div>

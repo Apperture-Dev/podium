@@ -32,11 +32,24 @@ export default function LoginPage() {
   }, [state.success]);
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
-      <div className="flex w-full max-w-sm flex-col gap-6 md:max-w-4xl">
-        <Link href="/" className="flex items-center gap-2 self-center font-heading font-semibold">
-          <img src="/logo-mark.svg" alt="" className="h-7 w-7 shrink-0" />
-          <img src="/logo-wordmark.svg" alt="Hostium" className="h-[22.6px] w-auto" />
+    <div className="relative flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.05]"
+        style={{
+          maskImage: "url(/logo-glyph.svg)",
+          WebkitMaskImage: "url(/logo-glyph.svg)",
+          maskRepeat: "repeat",
+          WebkitMaskRepeat: "repeat",
+          maskSize: "28px 28px",
+          WebkitMaskSize: "28px 28px",
+          backgroundColor: "var(--foreground)",
+        }}
+      />
+
+      <div className="relative z-10 flex w-full max-w-sm flex-col gap-6 md:max-w-4xl">
+        <Link href="/" className="flex items-center self-center font-heading font-semibold">
+          <img src="/logo-lockup.svg" alt="Hostium" className="h-[22.6px] w-auto" />
         </Link>
 
         <Card className="overflow-hidden p-0">
@@ -98,21 +111,11 @@ export default function LoginPage() {
               </FieldGroup>
             </form>
 
-            <div className="relative hidden flex-col items-center justify-center gap-6 overflow-hidden bg-primary p-10 md:flex">
-              <div
-                aria-hidden
-                className="absolute inset-0 opacity-[0.12]"
-                style={{
-                  backgroundImage: "url(/logo-glyph.svg)",
-                  backgroundSize: "64px 64px",
-                  backgroundRepeat: "repeat",
-                }}
-              />
-              <img src="/logo-mark.svg" alt="" className="relative h-20 w-20 shrink-0 rounded-lg shadow-lg" />
-              <p className="relative max-w-80 text-balance text-center text-base font-bold text-primary-foreground">
-                Despliega cualquier repo con una URL pública en segundos.
-              </p>
-            </div>
+            {/* Coloca la fotografía en public/login-photo.jpg; hasta entonces se ve el color primary como fondo. */}
+            <div
+              className="hidden bg-primary bg-cover bg-center md:block"
+              style={{ backgroundImage: "url(/login-photo.jpg)" }}
+            />
           </CardContent>
         </Card>
 

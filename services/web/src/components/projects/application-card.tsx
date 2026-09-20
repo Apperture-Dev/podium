@@ -1,10 +1,13 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tag } from "@phosphor-icons/react/dist/ssr";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Clock, Code, Tag } from "@phosphor-icons/react/dist/ssr";
 import type { Application } from "@/lib/api/applications";
 import { APPLICATION_STATE_TONES } from "@/lib/application-state-tones";
+import { avatarToneFor } from "@/lib/avatar-tones";
 import { TruncatedText } from "@/components/ui/truncated-text";
+import { relativeTimeFromNow } from "@/lib/relative-time";
+import { shapeGridAvatarUrl } from "@/lib/dicebear-avatar";
 
 /** Dos iniciales: primera letra de las dos primeras palabras, o los dos primeros caracteres si el nombre es una sola palabra (kebab/snake case). */
 function initialsOf(serviceName: string): string {
@@ -17,15 +20,26 @@ function initialsOf(serviceName: string): string {
     .join("");
 }
 
-export function ApplicationCard({ application }: { application: Application }) {
-  const tone = APPLICATION_STATE_TONES[application.state];
+export function ApplicationCard({
+  application,
+  index,
+}: {
+  application: Application;
+  index: number;
+}) {
+  const stateTone = APPLICATION_STATE_TONES[application.state];
+  const avatarTone = avatarToneFor(index);
   return (
     <Card>
       <CardContent className="space-y-3 py-4 text-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
-            <Avatar size="lg" className="rounded-none after:rounded-none">
-              <AvatarFallback className="rounded-none">
+            <Avatar size="lg">
+              <AvatarImage
+                src={shapeGridAvatarUrl(application.serviceName, avatarTone.hex)}
+                alt=""
+              />
+              <AvatarFallback>
                 {initialsOf(application.serviceName)}
               </AvatarFallback>
             </Avatar>
@@ -34,15 +48,9 @@ export function ApplicationCard({ application }: { application: Application }) {
               render={<p className="text-base font-medium truncate" />}
             />
           </div>
-          <Badge style={{ backgroundColor: tone.bg, color: tone.fg }}>
-            {tone.label}
+          <Badge style={{ backgroundColor: stateTone.bg, color: stateTone.fg }}>
+            {stateTone.label}
           </Badge>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">Versión</p>
-          <p className="flex items-center gap-1">
-            <Tag className="size-3.5 shrink-0" />v{application.version}
-          </p>
         </div>
         {application.hasPendingSourceChange && (
           <p className="text-xs text-muted-foreground">
@@ -50,6 +58,21 @@ export function ApplicationCard({ application }: { application: Application }) {
           </p>
         )}
       </CardContent>
+      <CardFooter className="justify-between gap-3 border-t bg-transparent pt-3 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex items-center gap-1 truncate">
+            <Code className="size-3.5 shrink-0" />
+            <span className="truncate">{application.framework}</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1">
+            <Tag className="size-3.5 shrink-0" />v{application.version}
+          </span>
+        </div>
+        <span className="flex shrink-0 items-center gap-1">
+          <Clock className="size-3.5 shrink-0" />
+          {relativeTimeFromNow(application.createdAt)}
+        </span>
+      </CardFooter>
     </Card>
   );
 }

@@ -20,8 +20,6 @@ export type ProjectDetail = {
 
 type ProjectsContextValue = {
   projects: Project[];
-  /** El primer Application registrado en cada Project — representa la card en el dashboard (ver Figma). */
-  primaryApplications: Record<string, Application | undefined>;
   addProject: (project: Project) => void;
   isLoading: boolean;
   error: string | null;
@@ -36,9 +34,6 @@ const ProjectsContext = createContext<ProjectsContextValue | null>(null);
 export function ProjectsProvider({ children }: { children: ReactNode }) {
   const { activeTeam } = useTeam();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [primaryApplications, setPrimaryApplications] = useState<
-    Record<string, Application | undefined>
-  >({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,30 +43,15 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     /* eslint-disable react-hooks/set-state-in-effect */
     if (!activeTeam) {
       setProjects([]);
-      setPrimaryApplications({});
       return;
     }
     let cancelled = false;
     setIsLoading(true);
     listProjects(activeTeam.id)
-      .then(async (fetched) => {
+      .then((fetched) => {
         if (cancelled) return;
         setProjects(fetched);
         setError(null);
-
-        const entries = await Promise.all(
-          fetched.map(async (project): Promise<[string, Application | undefined]> => {
-            try {
-              const applications = await listApplications(activeTeam.id, project.id);
-              return [project.id, applications[0]];
-            } catch {
-              return [project.id, undefined];
-            }
-          }),
-        );
-        if (!cancelled) {
-          setPrimaryApplications(Object.fromEntries(entries));
-        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -92,7 +72,6 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ProjectsContextValue>(
     () => ({
       projects,
-      primaryApplications,
       addProject: (project: Project) => {
         setProjects((prev) => [project, ...prev]);
       },
@@ -107,7 +86,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
         return { project, applications };
       },
     }),
-    [projects, primaryApplications, isLoading, error],
+    [projects, isLoading, error],
   );
 
   return (

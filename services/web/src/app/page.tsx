@@ -10,7 +10,6 @@ export default function ProyectosPage() {
   const { activeTeam, isLoading: isLoadingTeam } = useTeam();
   const {
     projects,
-    primaryApplications,
     isLoading: isLoadingProjects,
     error,
   } = useProjects();
@@ -36,12 +35,7 @@ export default function ProyectosPage() {
       {!isLoading && projects.length > 0 && (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project, index) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              application={primaryApplications[project.id]}
-              index={index}
-            />
+            <ProjectCard key={project.id} project={project} index={index} />
           ))}
         </div>
       )}

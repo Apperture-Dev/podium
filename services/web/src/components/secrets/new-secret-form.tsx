@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Plus } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
+import { Key } from "@phosphor-icons/react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import type { VariantProps } from "class-variance-authority";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -16,7 +17,13 @@ import {
 } from "@/components/ui/dialog";
 import { useSecrets } from "@/lib/secrets-context";
 
-export function NewSecretForm({ projectId }: { projectId: string }) {
+export function NewSecretForm({
+  projectId,
+  variant = "default",
+}: {
+  projectId: string;
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+}) {
   const { addSecret } = useSecrets();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -42,8 +49,8 @@ export function NewSecretForm({ projectId }: { projectId: string }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>
-        <Plus className="size-4" /> Nueva credencial
+      <DialogTrigger render={<Button variant={variant} />}>
+        <Key className="size-4" /> Nueva credencial
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={handleSubmit}>
