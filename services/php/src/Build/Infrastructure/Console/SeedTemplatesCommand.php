@@ -34,9 +34,15 @@ final class SeedTemplatesCommand extends Command
 
     /**
      * El puerto es el que expone el Dockerfile de plantilla correspondiente,
-     * y acaba tal cual en `values.port` del chart podium-app: las dos SPA se
-     * sirven con nginx y FastAPI con uvicorn, así que ninguna escucha donde
-     * escuchan Nest y Next.
+     * y acaba tal cual en `values.port` del chart podium-app — el chart no
+     * inyecta `PORT`, así que cada imagen tiene que escuchar exactamente en
+     * el suyo: nginx sirve las SPA en el 80, FrankenPHP también, uvicorn en
+     * el 8000, y para Go y Rust se fija el 8080 por convención (ver el
+     * README de services/build-runner).
+     *
+     * `go`/`stdlib` y `rust`/`cargo` nombran la cadena de build, no una
+     * librería: el Dockerfile compila y ejecuta el binario igual con gin,
+     * echo, axum o actix por encima.
      *
      * @var list<array{string, string, int}>
      */
@@ -46,6 +52,11 @@ final class SeedTemplatesCommand extends Command
         ['nodejs', 'react', 80],
         ['nodejs', 'vue', 80],
         ['python', 'fastapi', 8000],
+        ['php', 'laravel', 80],
+        ['php', 'symfony', 80],
+        ['php', 'symfony-worker', 80],
+        ['go', 'stdlib', 8080],
+        ['rust', 'cargo', 8080],
     ];
 
     public function __construct(private readonly ApplicationService $applicationService)

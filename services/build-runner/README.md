@@ -43,6 +43,20 @@ Señalizar el resultado (`JobSucceeded`/`JobFailed`) queda diferido — ver
 | `nodejs` | `react` | `npm ci && npm run build`; el estático resultante (`dist/`, o `build/` si es CRA) lo sirve nginx, sin Node en runtime | 80 |
 | `nodejs` | `vue` | Igual que `react`: build de Vite y nginx sirviendo `dist/` | 80 |
 | `python` | `fastapi` | `pip install -r requirements.txt`, arranca con `uvicorn main:app`; uvicorn lo aporta la plantilla, no hace falta declararlo | 8000 |
+| `php` | `symfony` | FrankenPHP en modo classic; `composer install`, front controller en `public/index.php` | 80 |
+| `php` | `symfony-worker` | FrankenPHP en worker mode; la plantilla añade `runtime/frankenphp-symfony` y fija `APP_RUNTIME` | 80 |
+| `php` | `laravel` | FrankenPHP en modo classic; genera `APP_KEY` en el build si el repo no trae `.env` | 80 |
+| `go` | `stdlib` | `go build` con CGO desactivado, binario sobre distroless (~8 MB); la app escucha en :8080 | 8080 |
+| `rust` | `cargo` | `cargo install --path . --locked`, binario sobre debian-slim; la app escucha en :8080 | 8080 |
+
+`stdlib` y `cargo` nombran la cadena de build, no una librería: la misma plantilla compila un
+`net/http` pelado o un gin/echo, un axum o un actix. Go y Rust no tienen puerto convencional y el
+chart no inyecta `PORT`, así que **la app tiene que escuchar exactamente en el 8080**.
+
+En `php/symfony-worker` el kernel sobrevive de una petición a la siguiente (verificado: un
+contador estático sube entre requests, mientras que en `php/symfony` se reinicia). Eso es lo que
+lo hace rápido y también lo que lo hace peligroso: un servicio que guarde estado del usuario
+actual lo filtra al siguiente visitante.
 
 El puerto de cada plantilla es el `defaultPort` de su `Template` en el catálogo de Build
 (`app:build:seed-templates`), y es el que acaba en `values.port` del chart `podium-app`. Una

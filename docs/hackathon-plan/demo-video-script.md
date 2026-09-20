@@ -1,6 +1,6 @@
 # Hostium — 2-minute demo video script
 
-Target: **1:55–2:05** spoken. 305 words of voiceover — 2:02 at 150 wpm. Time a read-through before recording.
+Target: **1:55–2:05** spoken. 306 words of voiceover — 2:02 at 150 wpm. Time a read-through before recording.
 Everything claimed here is shippable today — see "What we deliberately do NOT claim" at the end.
 
 ---
@@ -37,8 +37,8 @@ Everything claimed here is shippable today — see "What we deliberately do NOT 
 
 *Split view: the application card moving Building → Deployed; terminal with `kubectl get pods -n <hash>`.*
 > Behind that card: Hostium polls the repo for commits, runs a rootless Buildah job against our own
-> template Dockerfile, and hands ArgoCD one Application per service. Node, Python, React or Vue
-> today — another framework is one more Dockerfile.
+> template Dockerfile, and hands ArgoCD one Application per service. Node, Python, PHP, Go and
+> Rust today — another framework is one more Dockerfile.
 
 **(1:08) The payoff**
 
@@ -99,9 +99,10 @@ Keeping this honest is what makes the rest credible to a judge who pokes at it:
   explicit mock with no LLM call, and the Remediation bounded context was never started. It appears in
   the script only as a stated *next step*, never as a capability. If you show the agent panel on camera,
   say "next" out loud over it.
-- **"Any language" is not true today.** The catalog holds five templates: `nodejs/nestjs`,
-  `nodejs/nextjs`, `nodejs/react`, `nodejs/vue` and `python/fastapi`. The script names exactly those
-  and frames anything else as one more Dockerfile — accurate, and still strong.
+- **"Any language" is shorthand.** The catalog holds ten templates across five languages: Node
+  (NestJS, Next.js, React, Vue), Python (FastAPI), PHP (Symfony classic, Symfony worker mode,
+  Laravel), Go and Rust. The script names the five languages and frames anything else as one more
+  Dockerfile — accurate, and now genuinely broad.
 - **The secrets screen is a frontend fixture.** `INITIAL_FIXTURE_SECRETS` lives in the browser bundle,
   there is no secrets endpoint, and the values the tenant chart receives are only `hash`, `image`,
   `ingress.host` and `port` — no env vars reach the pod yet. The script no longer mentions API keys.

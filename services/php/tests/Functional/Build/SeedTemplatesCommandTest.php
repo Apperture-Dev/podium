@@ -55,6 +55,30 @@ final class SeedTemplatesCommandTest extends KernelTestCase
         }
     }
 
+    public function testSeedsThePhpTemplatesOnThePortFrankenphpListensOn(): void
+    {
+        $this->commandTester->execute([]);
+
+        foreach (['laravel', 'symfony', 'symfony-worker'] as $framework) {
+            $template = $this->templates->findByLanguageAndFramework('php', $framework);
+
+            self::assertNotNull($template, \sprintf('No se sembró la plantilla php/%s', $framework));
+            self::assertSame(80, $template->defaultPort(), \sprintf('php/%s lo sirve FrankenPHP', $framework));
+        }
+    }
+
+    public function testSeedsTheCompiledLanguageTemplatesOnTheAgreedPort(): void
+    {
+        $this->commandTester->execute([]);
+
+        foreach (['go' => 'stdlib', 'rust' => 'cargo'] as $language => $framework) {
+            $template = $this->templates->findByLanguageAndFramework($language, $framework);
+
+            self::assertNotNull($template, \sprintf('No se sembró la plantilla %s/%s', $language, $framework));
+            self::assertSame(8080, $template->defaultPort(), \sprintf('%s/%s tiene que escuchar donde lo publica el chart', $language, $framework));
+        }
+    }
+
     /**
      * Sembrar una plantilla nueva obliga a re-ejecutar el comando allí donde
      * las anteriores ya existen. Si eso redefiniera las existentes, el
