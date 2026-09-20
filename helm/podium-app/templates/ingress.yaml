@@ -2,6 +2,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Release.Name }}
+  annotations:
+    # Sin esto, external-dns manda TTL "1" (Cloudflare lo interpreta como
+    # "Auto", ~5 min reales) a la API de Cloudflare — de sobra para uso
+    # normal, pero demasiado lento para la demo del hackathon (cambiar de
+    # hash y esperar a que resuelva). 60s fuerza el mismo TTL que ya se
+    # había puesto a mano una vez en el dashboard de Cloudflare, ahora
+    # automático para cualquier tenant nuevo.
+    external-dns.alpha.kubernetes.io/ttl: "60"
 spec:
   ingressClassName: nginx
   # apperture-wildcard-tls cubre *.apperture.dev (un solo nivel) — el
