@@ -91,10 +91,18 @@ framework:
             # en Go, así que necesitan JSON real (body + headers.type) en vez del
             # serializador nativo de PHP (el default de este proyecto, ver los demás
             # transports de este fichero) — ver docs/ del plan del build-launcher.
+            # delete_after_ack/reject en false: PHP nunca consume este stream (solo
+            # publica) — su propio grupo "unassigned" jamás hace ack, así que no hay
+            # nada que borrar desde este lado. build-launcher (Go) ya crea su propio
+            # grupo y hace XACK+XDEL tras procesar cada mensaje (XDEL borra la
+            # entrada del stream entero, no por grupo — limpia igual). Con el default
+            # (true) el propio Connection::setup() de symfony/redis-messenger revienta
+            # en cuanto detecta más de un grupo en el stream — justo lo que pasa aquí,
+            # porque build-launcher ya creó el suyo antes de que PHP publique nada.
             build_job_requested:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 serializer: messenger.transport.symfony_serializer
-                options: { stream: 'podium.build-job-requested', group: 'unassigned', consumer: 'unassigned-1' }
+                options: { stream: 'podium.build-job-requested', group: 'unassigned', consumer: 'unassigned-1', delete_after_ack: false, delete_after_reject: false }
 
             # --- Lanzador de Kubernetes -> Build (Go, services/build-launcher) ---
             job_succeeded:
@@ -109,10 +117,13 @@ framework:
             # --- Deploy -> lanzador de ArgoCD (Go, services/deploy-launcher) ---
             # serializer explícito: mismo motivo que build_job_requested/job_succeeded/job_failed
             # más arriba — estos tres cruzan a un consumidor/productor en Go, necesitan JSON real.
+            # delete_after_ack/reject en false: mismo motivo que build_job_requested
+            # más arriba — PHP solo publica aquí, deploy-launcher (Go) es quien de
+            # verdad consume y limpia con su propio grupo.
             deploy_attempt_requested:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
                 serializer: messenger.transport.symfony_serializer
-                options: { stream: 'podium.deploy-attempt-requested', group: 'unassigned', consumer: 'unassigned-1' }
+                options: { stream: 'podium.deploy-attempt-requested', group: 'unassigned', consumer: 'unassigned-1', delete_after_ack: false, delete_after_reject: false }
 
             # --- Lanzador de ArgoCD -> Deploy (Go, services/deploy-launcher) ---
             health_check_succeeded:
