@@ -26,4 +26,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: deploy-launcher
-    namespace: podium-deploy
+    namespace: hostium

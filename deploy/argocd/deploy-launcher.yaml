@@ -17,7 +17,7 @@ spec:
     path: deploy/deploy-launcher
   destination:
     server: https://kubernetes.default.svc
-    namespace: podium-deploy
+    namespace: hostium
   syncPolicy:
     automated:
       prune: true
