@@ -40,11 +40,16 @@ func TestBuildSetsApiVersionAndKind(t *testing.T) {
 	}
 }
 
-func TestBuildNamesTheApplicationAfterTheHash(t *testing.T) {
+// Un Project puede declarar varios servicios en el mismo podium.yaml — todos
+// comparten hash (mismo Project), así que el nombre de la Application (y por
+// tanto el release de Helm, y los nombres de Deployment/Service/Ingress que
+// de ahí salen) tiene que llevar también el serviceName, o dos servicios del
+// mismo repo se pisarían el uno al otro.
+func TestBuildNamesTheApplicationAfterServiceNameAndHash(t *testing.T) {
 	app := argospec.Build(testRequest(), testConfig())
 
-	if app.GetName() != "tenant-abc12345" {
-		t.Fatalf("got name %q, want tenant-abc12345", app.GetName())
+	if app.GetName() != "tenant-backend-abc12345" {
+		t.Fatalf("got name %q, want tenant-backend-abc12345", app.GetName())
 	}
 	if app.GetNamespace() != "argocd" {
 		t.Fatalf("got namespace %q, want argocd", app.GetNamespace())
@@ -94,8 +99,13 @@ func TestBuildSetsValuesObjectFromTheRequest(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected values.ingress to be a map, got %T", values["ingress"])
 	}
-	if ingress["host"] != "abc12345.apperture.dev" {
-		t.Fatalf("got values.ingress.host %v", ingress["host"])
+	// {serviceName}-{hash}, no solo {hash}: mismo motivo que el nombre de la
+	// Application — dos servicios del mismo Project comparten hash, y el
+	// wildcard *.apperture.dev solo cubre un nivel (confirmado contra el
+	// cert real), así que no se puede resolver con un subdominio
+	// "serviceName.hash.apperture.dev".
+	if ingress["host"] != "backend-abc12345.apperture.dev" {
+		t.Fatalf("got values.ingress.host %v, want backend-abc12345.apperture.dev", ingress["host"])
 	}
 }
 

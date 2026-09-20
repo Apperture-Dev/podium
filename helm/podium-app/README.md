@@ -1,10 +1,11 @@
 # podium-app
 
-Chart Helm genérico — un `Deployment`/`Service`/`Ingress` por tenant (equipo del hackathon),
-publicado como artefacto OCI en `registry.apperture.dev/charts` y referenciado por un
-`Application` de ArgoCD distinto por tenant (`tenant-{hash}`), sin git de por medio para el
-despliegue por tenant — ver `docs/hackathon-plan/plan-hackbarna-2026.md` § "Deploy: ArgoCD
-Application apuntando a un chart Helm en el registro OCI — sin git".
+Chart Helm genérico — un `Deployment`/`Service`/`Ingress` por servicio desplegado (un Project puede
+declarar varios servicios en su `podium.yaml`, todos con el mismo `hash`), publicado como artefacto
+OCI en `registry.apperture.dev/charts` y referenciado por un `Application` de ArgoCD distinto por
+servicio (`tenant-{serviceName}-{hash}`), sin git de por medio para el despliegue por tenant — ver
+`docs/hackathon-plan/plan-hackbarna-2026.md` § "Deploy: ArgoCD Application apuntando a un chart
+Helm en el registro OCI — sin git".
 
 ## Values
 
@@ -12,12 +13,17 @@ Los tres del `Application` de ejemplo del plan del hackathon, más `port` (añad
 que no todas las apps escuchan en el mismo puerto — no se puede asumir un valor fijo):
 
 ```yaml
-hash: ""              # identificador del tenant — nombra el Deployment/Service/Ingress y va como label
+hash: ""              # identificador del Project — va como label; lo que nombra el
+                       # Deployment/Service/Ingress es el Release de Helm
+                       # (services/deploy-launcher/internal/argospec ya lo fija a
+                       # "tenant-{serviceName}-{hash}" al crear la Application)
 image:
   repository: ""
   tag: ""
 ingress:
-  host: ""             # "{hash}.apperture.dev"
+  host: ""             # "{serviceName}-{hash}.apperture.dev" — nunca "{serviceName}.{hash}.apperture.dev":
+                        # el wildcard solo cubre un nivel (ver TLS más abajo), y un solo hash puede
+                        # tener varios servicios (un Project con varias claves en podium.yaml)
 port: 3000             # puerto del contenedor — default a la convención Node (única real hoy),
                         # sobreescribible por values
 ```
@@ -27,9 +33,10 @@ que `jobImage`) y viaja sin tocar por `BuildSucceeded` → `ApplicationDeployReq
 `DeployAttemptRequested` hasta `services/deploy-launcher`, que lo pasa directo a este value — ver
 `deploy/deploy-launcher/README.md`.
 
-TLS: `apperture-wildcard-tls` (cubre `*.apperture.dev`, un solo nivel — el host de un tenant es
-`{hash}.apperture.dev`, exactamente ese nivel) — ya reflejado por Reflector en cualquier namespace
-nuevo, sin paso manual.
+TLS: `apperture-wildcard-tls` (cubre `*.apperture.dev`, un solo nivel — el host de un servicio es
+`{serviceName}-{hash}.apperture.dev`, exactamente ese nivel — un subdominio de dos niveles como
+`{serviceName}.{hash}.apperture.dev` NO estaría cubierto, confirmado contra el certificado real) —
+ya reflejado por Reflector en cualquier namespace nuevo, sin paso manual.
 
 ## Namespace
 

@@ -36,7 +36,7 @@ func Build(req events.DeployAttemptRequested, cfg Config) *unstructured.Unstruct
 			"apiVersion": "argoproj.io/v1alpha1",
 			"kind":       "Application",
 			"metadata": map[string]any{
-				"name":      "tenant-" + req.Hash,
+				"name":      "tenant-" + tenantSlug(req),
 				"namespace": cfg.ArgoCDNamespace,
 			},
 			"spec": map[string]any{
@@ -81,10 +81,21 @@ func valuesObject(req events.DeployAttemptRequested, cfg Config, repository, tag
 			"tag":        tag,
 		},
 		"ingress": map[string]any{
-			"host": req.Hash + "." + cfg.BaseDomain,
+			"host": tenantSlug(req) + "." + cfg.BaseDomain,
 		},
 		"port": req.Port,
 	}
+}
+
+// tenantSlug identifica un servicio dentro de un Project — un Project puede
+// declarar varios servicios en el mismo podium.yaml, todos con el mismo
+// Hash, así que el hash solo no basta para nombrar ni la Application ni el
+// host público sin que dos servicios del mismo repo se pisen entre sí.
+// {serviceName}-{hash}, no un subdominio "{serviceName}.{hash}": el
+// wildcard apperture-wildcard-tls solo cubre *.apperture.dev (un nivel),
+// confirmado contra el certificado real.
+func tenantSlug(req events.DeployAttemptRequested) string {
+	return req.ServiceName + "-" + req.Hash
 }
 
 // splitImage splits "repo/path:tag" on the LAST colon — a registry

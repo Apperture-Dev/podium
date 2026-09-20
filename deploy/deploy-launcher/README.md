@@ -3,7 +3,8 @@
 Ver `docs/podium-domain/deploy/model.md` § "Frontera de infraestructura" y el plan en
 `/home/adrian/.claude/plans/mossy-percolating-treehouse.md` para el contexto completo. Resumen:
 consume `DeployAttemptRequested` de `podium.deploy-attempt-requested` (Redis Streams), crea o
-actualiza el `Application` de ArgoCD del tenant (`tenant-{hash}`, chart OCI `podium-app`), y
+actualiza el `Application` de ArgoCD del servicio (`tenant-{serviceName}-{hash}`, chart OCI
+`podium-app`), y
 reporta `HealthCheckSucceeded`/`HealthCheckExhausted` de vuelta a Deploy por
 `podium.health-check-succeeded`/`podium.health-check-exhausted`.
 
