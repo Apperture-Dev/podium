@@ -13,10 +13,10 @@ images:
 - name: REGISTRY_PLACEHOLDER/web
   newName: registry.gitlab.com/apperturedev/podium/web
   newTag: latest
-- digest: sha256:49d65b16238b9b3889f025814885285a28a7605d192618f191a005b7c2f7d42c
+- digest: sha256:0a4f9b6e973db401effd06cf035b3cca40834f0a76907128258f6c6688727210
   name: registry.gitlab.com/apperturedev/podium/php
   newName: registry.gitlab.com/apperturedev/podium/php
-  newTag: 2a75edcb
+  newTag: c6a99021
 - digest: sha256:56512e0358f4633febc6d7da016d9f893bf622be8f815f8601a1719f0bdbed6a
   name: registry.gitlab.com/apperturedev/podium/web
   newName: registry.gitlab.com/apperturedev/podium/web
