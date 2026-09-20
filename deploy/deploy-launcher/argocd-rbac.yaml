@@ -1,0 +1,29 @@
+# El Application (argoproj.io) que este lanzador crea/actualiza vive en el
+# namespace "argocd", no en "podium-deploy" — así que la RBAC que le da
+# acceso a ese recurso también tiene que vivir ahí, como un Role/RoleBinding
+# namespaced en "argocd" (nunca ClusterRole: el recurso vive en un único
+# namespace conocido de antemano, no hace falta alcance de clúster) con un
+# subject que referencia el ServiceAccount del namespace propio del lanzador.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deploy-launcher
+  namespace: argocd
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deploy-launcher
+  namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deploy-launcher
+subjects:
+  - kind: ServiceAccount
+    name: deploy-launcher
+    namespace: podium-deploy

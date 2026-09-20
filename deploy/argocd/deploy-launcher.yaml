@@ -1,0 +1,26 @@
+# Igual que el activator/build-launcher (ver el comentario en
+# deploy/argocd/build-launcher.yaml): a diferencia del despliegue de apps de
+# equipos del hackathon (chart OCI + Application aplicada con kubectl, sin
+# git), el deploy-launcher es infraestructura propia de Podium — una sola
+# instancia, cambios poco frecuentes — se trata como código de producto,
+# trackeado en git con revisión por PR, igual que el resto de deploy/argocd/.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: deploy-launcher
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.com/apperturedev/podium.git
+    targetRevision: HEAD
+    path: deploy/deploy-launcher
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: podium-deploy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

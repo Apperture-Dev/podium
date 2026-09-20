@@ -248,3 +248,41 @@ package-podium-app-chart:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - helm/podium-app/**/*
+
+test-deploy-launcher:
+  stage: test
+  image: golang:1.23-bookworm
+  script:
+    - cd services/deploy-launcher
+    - go vet ./...
+    - go test ./... -race
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - services/deploy-launcher/**/*
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/deploy-launcher/**/*
+
+build-deploy-launcher:
+  extends: .buildah-base
+  stage: build
+  needs: ["test-deploy-launcher"]
+  script:
+    - |
+      buildah bud --isolation=chroot --layers \
+        --cache-from "$CI_REGISTRY_IMAGE/deploy-launcher" \
+        --target prod \
+        -t "$CI_REGISTRY_IMAGE/deploy-launcher:$CI_COMMIT_SHORT_SHA" \
+        -t "$CI_REGISTRY_IMAGE/deploy-launcher:latest" \
+        -f services/deploy-launcher/Dockerfile services/deploy-launcher
+    - buildah push "$CI_REGISTRY_IMAGE/deploy-launcher:latest"
+    - buildah push --digestfile /tmp/image-digest.txt "$CI_REGISTRY_IMAGE/deploy-launcher:$CI_COMMIT_SHORT_SHA"
+    - echo "IMAGE_DIGEST=$(cat /tmp/image-digest.txt)" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/deploy-launcher/**/*
