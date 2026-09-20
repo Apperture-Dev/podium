@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { TeamSwitcher } from "@/components/shell/team-switcher";
