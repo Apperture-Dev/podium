@@ -1,0 +1,5 @@
+apiVersion: v2
+name: podium-app
+description: Chart genérico de Podium — un Deployment/Service/Ingress por tenant, parametrizado por hash/imagen/host. Ver README.md.
+type: application
+version: 0.1.0

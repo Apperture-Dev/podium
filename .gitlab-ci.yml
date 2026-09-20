@@ -231,3 +231,15 @@ build-build-launcher:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - services/build-launcher/**/*
+
+package-podium-app-chart:
+  stage: build
+  image: alpine/helm:latest
+  script:
+    - echo "$ZOT_REGISTRY_PASSWORD" | helm registry login registry.apperture.dev -u "$ZOT_REGISTRY_USER" --password-stdin
+    - helm package helm/podium-app
+    - helm push podium-app-*.tgz oci://registry.apperture.dev/charts
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - helm/podium-app/**/*

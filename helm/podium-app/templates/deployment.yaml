@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+    podium.dev/hash: {{ .Values.hash | quote }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        podium.dev/hash: {{ .Values.hash | quote }}
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          # 3000: convención de services/build-runner/templates/*.Dockerfile
+          # (todas las plantillas de build de Podium exponen ese puerto) —
+          # no configurable por values todavía, no se pidió.
+          ports:
+            - name: http
+              containerPort: 3000

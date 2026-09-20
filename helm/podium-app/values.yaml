@@ -1,0 +1,9 @@
+# Values obligatorios — exactamente los tres que ya usa el Application de
+# ArgoCD de ejemplo en docs/hackathon-plan/plan-hackbarna-2026.md (líneas
+# 98-121). No añadir campos nuevos sin actualizar ese contrato primero.
+hash: ""
+image:
+  repository: ""
+  tag: ""
+ingress:
+  host: ""
