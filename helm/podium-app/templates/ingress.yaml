@@ -4,6 +4,17 @@ metadata:
   name: {{ .Release.Name }}
 spec:
   ingressClassName: nginx
+  # apperture-wildcard-tls cubre *.apperture.dev (un solo nivel) — el
+  # operador Reflector ya lo refleja automáticamente en cualquier namespace
+  # nuevo (confirmado contra el clúster real), así que ya existe en el
+  # namespace del tenant en cuanto ArgoCD lo crea, sin ningún paso manual.
+  # host = "{hash}.apperture.dev" es exactamente un nivel bajo apperture.dev,
+  # así que el wildcard lo cubre (a diferencia de dominios de dos niveles
+  # como los propios de Hostium, que sí necesitan cert-manager por host).
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host | quote }}
+      secretName: apperture-wildcard-tls
   rules:
     - host: {{ .Values.ingress.host | quote }}
       http:

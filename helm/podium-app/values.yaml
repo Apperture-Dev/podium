@@ -7,3 +7,9 @@ image:
   tag: ""
 ingress:
   host: ""
+# Puerto en el que escucha el contenedor de la app — no todos los
+# frameworks arrancan en el mismo puerto (Node/NestJS/Next.js: 3000;
+# un futuro template PHP/FrankenPHP: 80; etc.). Default a la única
+# convención real hoy (ver services/build-runner/templates/*.Dockerfile),
+# pero el chart NO debe asumirlo fijo — quien lo despliegue lo sobreescribe.
+port: 3000

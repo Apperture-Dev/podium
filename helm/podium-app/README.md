@@ -8,8 +8,8 @@ Application apuntando a un chart Helm en el registro OCI — sin git".
 
 ## Values
 
-Exactamente los tres que ya usa el `Application` de ejemplo del plan del hackathon — no añadir
-campos nuevos sin actualizar ese contrato primero:
+Los tres del `Application` de ejemplo del plan del hackathon, más `port` (añadido tras revisar
+que no todas las apps escuchan en el mismo puerto — no se puede asumir un valor fijo):
 
 ```yaml
 hash: ""              # identificador del tenant — nombra el Deployment/Service/Ingress y va como label
@@ -18,13 +18,19 @@ image:
   tag: ""
 ingress:
   host: ""             # "{hash}.apperture.dev"
+port: 3000             # puerto del contenedor — default a la convención Node (única real hoy),
+                        # sobreescribible por values
 ```
 
-Puerto del contenedor fijo en `3000` (no configurable por values todavía) — es el puerto que ya
-exponen todas las plantillas de build de Podium (`services/build-runner/templates/*.Dockerfile`).
+**Pendiente real, sin resolver todavía**: `port` no tiene ningún origen en la cadena de dominio
+(`DeclaredService`, `BuildSucceeded`, `ApplicationDeployRequested`, `DeployAttemptRequested` — ni
+`Template` guarda un puerto por framework). El chart ya lo soporta como value, pero
+`services/deploy-launcher` no tiene de dónde sacar un valor real todavía y usa el default de
+`3000` — ver la discusión pendiente en `deploy/deploy-launcher/README.md`.
 
-Sin TLS declarado en el `Ingress` de este chart — la terminación TLS para los namespaces de
-tenant del hackathon (wildcard/Reflector) es infraestructura aparte, no de este chart.
+TLS: `apperture-wildcard-tls` (cubre `*.apperture.dev`, un solo nivel — el host de un tenant es
+`{hash}.apperture.dev`, exactamente ese nivel) — ya reflejado por Reflector en cualquier namespace
+nuevo, sin paso manual.
 
 ## Namespace
 

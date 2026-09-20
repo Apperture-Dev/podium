@@ -19,9 +19,6 @@ spec:
       containers:
         - name: app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          # 3000: convención de services/build-runner/templates/*.Dockerfile
-          # (todas las plantillas de build de Podium exponen ese puerto) —
-          # no configurable por values todavía, no se pidió.
           ports:
             - name: http
-              containerPort: 3000
+              containerPort: {{ .Values.port }}

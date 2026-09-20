@@ -16,6 +16,7 @@ func testConfig() argospec.Config {
 		ChartName:       "podium-app",
 		ChartVersion:    "0.1.0",
 		BaseDomain:      "apperture.dev",
+		DefaultPort:     3000,
 	}
 }
 
@@ -95,6 +96,22 @@ func TestBuildSetsValuesObjectFromTheRequest(t *testing.T) {
 	}
 	if ingress["host"] != "abc12345.apperture.dev" {
 		t.Fatalf("got values.ingress.host %v", ingress["host"])
+	}
+}
+
+// El puerto real de cada app no tiene origen todavía en ningún evento de
+// dominio (DeployAttemptRequested no lo lleva — ver deploy-launcher/README.md,
+// "Pendiente real, sin resolver todavía") — hasta que se resuelva esa
+// pregunta más amplia, se usa el default del propio lanzador, igual que
+// IMAGE_REGISTRY. Este test documenta ese comportamiento provisional, no lo
+// esconde.
+func TestBuildUsesTheLauncherDefaultPortSinceTheEventDoesNotCarryOne(t *testing.T) {
+	app := argospec.Build(testRequest(), testConfig())
+
+	values, _, _ := unstructured.NestedMap(app.Object, "spec", "source", "helm", "valuesObject")
+
+	if values["port"] != int64(3000) {
+		t.Fatalf("got values.port %v (%T), want 3000", values["port"], values["port"])
 	}
 }
 

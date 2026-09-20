@@ -39,6 +39,11 @@ spec:
               value: "0.1.0"
             - name: BASE_DOMAIN
               value: "apperture.dev"
+            # Sin origen en ningún evento de dominio todavía (ver
+            # deploy-launcher/README.md, "Pendiente real, sin resolver
+            # todavía") — mismo default que usa el chart.
+            - name: DEFAULT_PORT
+              value: "3000"
           resources:
             requests:
               memory: "64Mi"

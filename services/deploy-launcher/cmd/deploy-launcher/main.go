@@ -46,6 +46,7 @@ func main() {
 		ChartName:       envOrDefault("CHART_NAME", "podium-app"),
 		ChartVersion:    envOrDefault("CHART_VERSION", "0.1.0"),
 		BaseDomain:      envOrDefault("BASE_DOMAIN", "apperture.dev"),
+		DefaultPort:     int64(envIntOrDefault("DEFAULT_PORT", 3000)),
 	}
 
 	dynamicClient, err := newDynamicClient()
