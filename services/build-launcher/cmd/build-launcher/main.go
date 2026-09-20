@@ -40,7 +40,7 @@ func main() {
 	ttl := int32(envIntOrDefault("JOB_TTL_SECONDS", 300))
 
 	cfg := jobspec.Config{
-		Namespace:               envOrDefault("BUILD_NAMESPACE", "podium-build"),
+		Namespace:               envOrDefault("BUILD_NAMESPACE", "hostium"),
 		ImageRegistry:           envOrDefault("IMAGE_REGISTRY", "registry.apperture.dev"),
 		RegistrySecretName:      envOrDefault("REGISTRY_SECRET_NAME", "zot-pull-secret"),
 		TTLSecondsAfterFinished: ttl,

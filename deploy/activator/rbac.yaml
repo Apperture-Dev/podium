@@ -42,7 +42,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: activator
-    namespace: activator-system
+    namespace: hostium
 ---
 # El ConfigMap del kill switch (activator-config) es namespaced, dentro del
 # propio namespace del activator — no necesita alcance de clúster.

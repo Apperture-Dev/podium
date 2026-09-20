@@ -48,7 +48,7 @@ const (
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	namespace := envOrDefault("ACTIVATOR_NAMESPACE", "activator-system")
+	namespace := envOrDefault("ACTIVATOR_NAMESPACE", "hostium")
 	httpAddr := envOrDefault("ACTIVATOR_HTTP_ADDR", ":8080")
 	activatorService := envOrDefault("ACTIVATOR_SERVICE_NAME", "activator")
 	activatorPort := envIntOrDefault("ACTIVATOR_SERVICE_PORT", 8080)

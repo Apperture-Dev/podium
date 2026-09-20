@@ -2,7 +2,7 @@
 # desplegado queda inerte (informers activos, tabla de rutas construida,
 # cero tráfico real) hasta que se decida el cutover a mano, tras el
 # congelado de las 22:30 del hackathon. Cambiar este valor y volver a
-# aplicar (o "kubectl patch configmap activator-config -n activator-system
+# aplicar (o "kubectl patch configmap activator-config -n hostium
 # --type merge -p '{"data":{"enabled":"true"}}'" para no pasar por git en
 # plena emergencia) es la misma operación que apagarlo — ver
 # internal/killswitch.
