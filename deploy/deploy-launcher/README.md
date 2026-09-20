@@ -38,6 +38,26 @@ reescribe `spec.source.targetRevision` de su `Application` además del `valuesOb
 tenant renderizaría para siempre la versión del chart con la que nació, en silencio — nada falla,
 simplemente despliega la plantilla antigua.
 
+## Un mensaje que falla deja el deploy colgado — y nadie lo relee
+
+Aprendido en el primer despliegue real de un repo con dos servicios. Si el lanzador no puede
+procesar un `DeployAttemptRequested` (por ejemplo, un payload que no deserializa), hace `return`
+sin `XACK`: el mensaje se queda en la *pending entries list* del consumer group. Pero el bucle lee
+con `>`, o sea **sólo mensajes nuevos**, así que ese pendiente no se vuelve a intentar nunca, ni
+reiniciando el pod.
+
+La consecuencia no se queda en Redis: el `DeployAttempt` nunca recibe señal de salud, así que la
+`Application` de App Manager se queda en `Deploying` para siempre. Y como `markSourceChanged`
+marca los cambios de fuente como pendientes mientras está en `Deploying`, un commit nuevo tampoco
+la desatasca — no hay timeout que la rescate.
+
+Para recuperar un deploy así, sin tocar la base de datos, se reinyecta el mensaje original en el
+stream (copiándolo con `XRANGE` + `XADD`) y se hace `XACK` del pendiente. El ciclo se completa
+solo: se crea la `Application`, llega la señal de salud y App Manager pasa a `Deployed`.
+
+Pendiente, no resuelto: recuperar los pendientes al arrancar (`XAUTOCLAIM`) y darle a `DeployAttempt`
+una salida por tiempo, para que un fallo del lanzador no deje una `Application` bloqueada.
+
 ## Puerto del contenedor — convención sobre configuración, no config del lanzador
 
 El puerto en el que escucha el contenedor de cada tenant viaja en `DeployAttemptRequested.port`,
