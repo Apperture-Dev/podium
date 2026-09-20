@@ -36,10 +36,22 @@ Señalizar el resultado (`JobSucceeded`/`JobFailed`) queda diferido — ver
 
 ## Plantillas disponibles
 
-| lang | framework | Convención |
-|---|---|---|
-| `nodejs` | `nestjs` | `npm ci && npm run build`, arranca con `npm start` |
-| `nodejs` | `nextjs` | `npm ci && npm run build`, arranca con `npm start` (`next start`); sin asumir `output: "standalone"` |
+| lang | framework | Convención | Puerto |
+|---|---|---|---|
+| `nodejs` | `nestjs` | `npm ci && npm run build`, arranca con `npm start` | 3000 |
+| `nodejs` | `nextjs` | `npm ci && npm run build`, arranca con `npm start` (`next start`); sin asumir `output: "standalone"` | 3000 |
+| `nodejs` | `react` | `npm ci && npm run build`; el estático resultante (`dist/`, o `build/` si es CRA) lo sirve nginx, sin Node en runtime | 80 |
+| `nodejs` | `vue` | Igual que `react`: build de Vite y nginx sirviendo `dist/` | 80 |
+| `python` | `fastapi` | `pip install -r requirements.txt`, arranca con `uvicorn main:app`; uvicorn lo aporta la plantilla, no hace falta declararlo | 8000 |
+
+El puerto de cada plantilla es el `defaultPort` de su `Template` en el catálogo de Build
+(`app:build:seed-templates`), y es el que acaba en `values.port` del chart `podium-app`. Una
+plantilla nueva se añade aquí **y** en ese comando: el Dockerfile sin entrada en el catálogo no
+lo resuelve nadie, y la entrada sin Dockerfile falla en el `Job` de build.
+
+Las dos plantillas de SPA escriben su configuración de nginx dentro del propio Dockerfile en vez
+de copiarla: el contexto de build es el repo del equipo, no este directorio. El `try_files` de esa
+configuración es lo que evita un 404 al abrir en frío una ruta profunda de la SPA.
 
 ## Publicación (CI)
 

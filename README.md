@@ -73,7 +73,7 @@ docker compose exec frankenphp bin/console doctrine:migrations:migrate --env=tes
 
 ### 4. Sembrar el catálogo de `Template` (Build)
 
-Necesario antes de poder registrar cualquier `Application` — hoy solo existe la plantilla `nodejs`/`nestjs` (ver `services/build-runner/`):
+Necesario antes de poder registrar cualquier `Application`. Hoy el catálogo cubre `nodejs`/`nestjs`, `nodejs`/`nextjs`, `nodejs`/`react`, `nodejs`/`vue` y `python`/`fastapi` (ver `services/build-runner/`). El comando es idempotente: re-ejecutarlo para sembrar una plantilla nueva no duplica las anteriores.
 
 ```bash
 docker compose exec frankenphp bin/console app:build:seed-templates

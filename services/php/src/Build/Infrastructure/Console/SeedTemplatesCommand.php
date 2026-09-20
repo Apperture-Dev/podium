@@ -14,11 +14,40 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Siembra el catálogo de Template — sin CRUD/HTTP propio todavía (nadie
  * más que este comando lo necesita hoy). Cada entrada usa
  * ApplicationService::defineTemplate(), el mismo camino que usaría un
- * futuro endpoint de administración.
+ * futuro endpoint de administración, y se puede re-ejecutar sin duplicar
+ * lo ya definido.
  */
 #[AsCommand(name: 'app:build:seed-templates', description: 'Siembra el catálogo de Template (lenguaje/framework → jobImage)')]
 final class SeedTemplatesCommand extends Command
 {
+    /**
+     * jobImage: services/build-runner (buildah genérico) — selecciona
+     * internamente templates/{lang}-{framework}.Dockerfile según lo que
+     * declare podium.yaml.
+     *
+     * Registro de GitLab, no GHCR: es donde .gitlab-ci.yml publica de verdad
+     * la imagen (build-build-runner) — el valor con ghcr.io que hubo aquí
+     * antes nunca se publicó a ningún sitio (404 real contra el clúster,
+     * confirmado con el primer build de un repo real).
+     */
+    private const JOB_IMAGE = 'registry.gitlab.com/apperturedev/podium/build-runner:latest';
+
+    /**
+     * El puerto es el que expone el Dockerfile de plantilla correspondiente,
+     * y acaba tal cual en `values.port` del chart podium-app: las dos SPA se
+     * sirven con nginx y FastAPI con uvicorn, así que ninguna escucha donde
+     * escuchan Nest y Next.
+     *
+     * @var list<array{string, string, int}>
+     */
+    private const TEMPLATES = [
+        ['nodejs', 'nestjs', 3000],
+        ['nodejs', 'nextjs', 3000],
+        ['nodejs', 'react', 80],
+        ['nodejs', 'vue', 80],
+        ['python', 'fastapi', 8000],
+    ];
+
     public function __construct(private readonly ApplicationService $applicationService)
     {
         parent::__construct();
@@ -26,34 +55,17 @@ final class SeedTemplatesCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // jobImage: services/build-runner (buildah genérico) — selecciona
-        // internamente templates/{lang}-{framework}.Dockerfile según lo
-        // que declare podium.yaml. Convención: "npm ci && npm run build
-        // && npm start" (ver docs/examples/podium-example.yaml).
-        //
-        // Registro de GitLab, no GHCR: es donde .gitlab-ci.yml publica de
-        // verdad la imagen (build-build-runner) — el valor con ghcr.io que
-        // hubo aquí antes nunca se publicó a ningún sitio (404 real contra
-        // el clúster, confirmado con el primer build de un repo real).
-        $nestjsId = $this->applicationService->defineTemplate(
-            'nodejs',
-            'nestjs',
-            'registry.gitlab.com/apperturedev/podium/build-runner:latest',
-            3000,
-            [],
-        );
+        foreach (self::TEMPLATES as [$language, $framework, $defaultPort]) {
+            $templateId = $this->applicationService->defineTemplate(
+                $language,
+                $framework,
+                self::JOB_IMAGE,
+                $defaultPort,
+                [],
+            );
 
-        $output->writeln(\sprintf('Template nodejs/nestjs creado: %s', $nestjsId));
-
-        $nextjsId = $this->applicationService->defineTemplate(
-            'nodejs',
-            'nextjs',
-            'registry.gitlab.com/apperturedev/podium/build-runner:latest',
-            3000,
-            [],
-        );
-
-        $output->writeln(\sprintf('Template nodejs/nextjs creado: %s', $nextjsId));
+            $output->writeln(\sprintf('Template %s/%s (:%d): %s', $language, $framework, $defaultPort, $templateId));
+        }
 
         return Command::SUCCESS;
     }

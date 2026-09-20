@@ -25,9 +25,22 @@ final readonly class ApplicationService
     ) {
     }
 
-    /** @param array<string, ParamField> $paramSchema */
+    /**
+     * Idempotente: un lenguaje/framework ya definido devuelve el Template que
+     * existe en vez de crear otro. Sembrar una plantilla nueva obliga a volver
+     * a definir las anteriores, y dos filas para el mismo par harían que
+     * `findByLanguageAndFramework` (un `findOneBy`) resolviese cualquiera de
+     * las dos.
+     *
+     * @param array<string, ParamField> $paramSchema
+     */
     public function defineTemplate(string $language, string $framework, string $jobImage, int $defaultPort, array $paramSchema): string
     {
+        $existing = $this->templates->findByLanguageAndFramework($language, $framework);
+        if (null !== $existing) {
+            return $existing->id()->toString();
+        }
+
         $template = Template::define($language, $framework, $jobImage, $defaultPort, $paramSchema);
         $this->templates->save($template);
 

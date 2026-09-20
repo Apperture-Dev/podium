@@ -1,6 +1,6 @@
 # Hostium — 2-minute demo video script
 
-Target: **1:55–2:05** spoken. 306 words of voiceover — 2:02 at 150 wpm. Time a read-through before recording.
+Target: **1:55–2:05** spoken. 305 words of voiceover — 2:02 at 150 wpm. Time a read-through before recording.
 Everything claimed here is shippable today — see "What we deliberately do NOT claim" at the end.
 
 ---
@@ -31,14 +31,14 @@ Everything claimed here is shippable today — see "What we deliberately do NOT 
 *Show the repo's `podium.yaml` with two top-level keys: `app` and `frontend`.*
 > Hostium reads the `podium.yaml` the team already keeps in their own repo. This one declares two
 > services — a NestJS backend and a Next.js frontend — so it discovers both and deploys each
-> on its own, in the project's own namespace, each with its own public host.
+> on its own, each with its own public host.
 
 **(0:52) Build → deploy, live**
 
 *Split view: the application card moving Building → Deployed; terminal with `kubectl get pods -n <hash>`.*
 > Behind that card: Hostium polls the repo for commits, runs a rootless Buildah job against our own
-> template Dockerfile, and hands ArgoCD one Application per service. Node today — another language
-> is one more Dockerfile.
+> template Dockerfile, and hands ArgoCD one Application per service. Node, Python, React or Vue
+> today — another framework is one more Dockerfile.
 
 **(1:08) The payoff**
 
@@ -80,6 +80,8 @@ Everything claimed here is shippable today — see "What we deliberately do NOT 
 - **Have a backup take of the build→deploy segment** recorded earlier. If the live one drags, cut to it.
   Never let dead air sit on a spinner.
 - **The phone shot at 1:08 is the emotional beat of the video.** Don't rush it — let the page load on camera.
+- **If the demo repo is a monorepo with a Node backend and a React or Vue frontend**, the two-service
+  beat and the language beat land on the same screen. That is the strongest version of this cut.
 - **Numbers beat adjectives.** If you have real adoption by recording time (teams onboarded, deployments,
   uptime since Saturday), open the "proof" beat with those figures and keep dogfooding as the second sentence.
 
@@ -97,8 +99,9 @@ Keeping this honest is what makes the rest credible to a judge who pokes at it:
   explicit mock with no LLM call, and the Remediation bounded context was never started. It appears in
   the script only as a stated *next step*, never as a capability. If you show the agent panel on camera,
   say "next" out loud over it.
-- **"Any language" is not true today.** The template catalog holds `nodejs/nestjs` and `nodejs/nextjs`.
-  The script says "Node today, one more Dockerfile per language" — accurate, and still strong.
+- **"Any language" is not true today.** The catalog holds five templates: `nodejs/nestjs`,
+  `nodejs/nextjs`, `nodejs/react`, `nodejs/vue` and `python/fastapi`. The script names exactly those
+  and frames anything else as one more Dockerfile — accurate, and still strong.
 - **The secrets screen is a frontend fixture.** `INITIAL_FIXTURE_SECRETS` lives in the browser bundle,
   there is no secrets endpoint, and the values the tenant chart receives are only `hash`, `image`,
   `ingress.host` and `port` — no env vars reach the pod yet. The script no longer mentions API keys.

@@ -28,6 +28,9 @@ app:                    # serviceName — nombre del servicio dentro de este rep
   src: backend          # Carpeta del repo donde vive el código de este servicio
   lang: nodejs          # Lenguaje — selecciona qué Template (catálogo de Build) aplica
   framework: nestjs     # Framework — junto a "lang", determina el jobImage y la convención de arranque
+                        # Combinaciones hoy: nodejs/nestjs, nodejs/nextjs, nodejs/react,
+                        # nodejs/vue, python/fastapi. Una combinación no registrada
+                        # falla el build con un mensaje claro, no se autodetecta
   environment:          # Variables de entorno — el mismo bloque sirve para build y para runtime
     NODE_ENV: production
     API_KEY: ${SECRET_NAME}     # Referencia a un secret — ver más abajo
