@@ -87,9 +87,19 @@ incremente solo.
 
 El job `package-podium-app-chart` de `.gitlab-ci.yml` hace `helm package` + `helm push` a
 `oci://registry.apperture.dev/charts` en cada cambio bajo `helm/podium-app/**/*` en la rama por
-defecto. Requiere las variables de CI/CD `ZOT_REGISTRY_USER`/`ZOT_REGISTRY_PASSWORD` (masked +
-protected) — las credenciales reales solo las puede dar quien administre el registro `zot`
-(o decodificarse a mano desde el secret `zot-pull-secret` ya presente en el clúster).
+defecto. Requiere las variables de CI/CD `ZOT_REGISTRY_USER`/`ZOT_REGISTRY_PASSWORD` (masked; la
+contraseña además hidden, y ninguna de las dos protected, así que no dependen de que la rama lo
+esté) — las credenciales reales solo las puede dar quien administre el registro `zot`.
+
+**El job también se puede lanzar a mano** desde cualquier pipeline de la rama por defecto: tiene
+una segunda regla `when: manual` justo para eso. Hizo falta porque el disparo por `changes` no
+siempre ocurre, y este artefacto es especialmente traicionero cuando no se publica: el
+`deploy-launcher` pide una `CHART_VERSION` fija, así que un chart no publicado no rompe ningún
+despliegue — simplemente los tenants siguen renderizando la versión anterior.
+
+**Al subir `version` en `Chart.yaml` hay que hacer dos cosas, en este orden**: publicar el chart
+(este job) y sólo después actualizar `CHART_VERSION` en `deploy/deploy-launcher/deployment.yaml`.
+Al revés, ArgoCD intentaría resolver una versión que todavía no existe en el registro.
 
 ## Registrar el repo OCI en ArgoCD (una sola vez, fuera de esta pipeline)
 

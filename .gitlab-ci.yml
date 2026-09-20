@@ -271,6 +271,17 @@ package-podium-app-chart:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
       changes:
         - helm/podium-app/**/*
+    # Segunda regla, siempre disponible a mano en la rama por defecto: el
+    # chart es el único artefacto cuyo consumidor (CHART_VERSION en
+    # deploy/deploy-launcher) apunta a una versión concreta, así que si la
+    # publicación no llega a ocurrir los tenants siguen renderizando la
+    # versión anterior sin que falle nada — se despliega bien, pero el chart
+    # viejo. Poder relanzarlo sin inventar un commit en helm/ evita ese
+    # bloqueo. `allow_failure` para que un job manual sin lanzar no deje el
+    # pipeline bloqueado.
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+      allow_failure: true
 
 test-deploy-launcher:
   stage: test
