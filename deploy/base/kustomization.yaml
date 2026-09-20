@@ -6,6 +6,7 @@ resources:
   - php-migration-job.yaml
   - appsource-poll-cronjob.yaml
   - php-deployment.yaml
+  - worker.yaml
   - php-service.yaml
   - php-ingress.yaml
   - web-deployment.yaml

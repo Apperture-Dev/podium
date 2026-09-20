@@ -1,0 +1,114 @@
+# Consumer de Symfony Messenger — sin esto, los ~14 EventHandler de
+# src/*/Application/EventHandler/ nunca se ejecutan: los eventos se quedan
+# publicados en Redis Streams (podium.*) sin nadie que haga XREADGROUP del
+# lado PHP, y la cadena cruzada Project -> AppSource -> App Manager ->
+# Build -> Deploy no avanza más allá del primer evento. Mismo patrón que
+# craft-market-gitops/base/worker.yaml (messenger:consume + stop-workers en
+# preStop), adaptado a que aquí cada BC tiene su propio transport/consumer
+# group (ver services/php/config/packages/messenger.yaml) en vez de un
+# único transport "async".
+#
+# Transports listados = solo los que tienen un #[AsMessageHandler] real hoy
+# (grep AsMessageHandler en src/*/Application/EventHandler/). Deliberadamente
+# fuera: build_job_requested / deploy_attempt_requested (los consume
+# services/build-launcher y services/deploy-launcher en Go, no PHP),
+# application_registered / build_failed_notification / build_failed_remediation /
+# deploy_failed_remediation (publicados, pero Notification y Remediation
+# todavía no existen como BC — ver la tabla de docs/podium-domain/context-map.md).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hostium-worker
+  template:
+    metadata:
+      labels:
+        app: hostium-worker
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      imagePullSecrets:
+        - name: gitlab-token-auth
+      terminationGracePeriodSeconds: 120 # > tiempo de proceso máximo esperado
+      containers:
+        - name: worker
+          image: REGISTRY_PLACEHOLDER/php:latest
+          # Sobreescribe el CMD por defecto de FrankenPHP (servidor web).
+          command: ["php", "bin/console"]
+          args:
+            - "messenger:consume"
+            - "source_changed"
+            - "application_source_changed"
+            - "service_discovered"
+            - "project_registered"
+            - "build_succeeded"
+            - "build_failed_app_manager"
+            - "application_deploy_requested"
+            - "deploy_succeeded"
+            - "deploy_failed_app_manager"
+            - "application_build_requested"
+            - "job_succeeded"
+            - "job_failed"
+            - "health_check_succeeded"
+            - "health_check_exhausted"
+            - "failed_events"
+            - "--time-limit=3600"
+            - "--memory-limit=512M"
+            - "-vv"
+          lifecycle:
+            preStop:
+              exec:
+                # Le dice al worker que termine el mensaje en curso y salga limpio.
+                command: ["php", "bin/console", "messenger:stop-workers"]
+          env:
+            - name: APP_ENV
+              value: prod
+            - name: APP_DEBUG
+              value: "0"
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-app
+                  key: uri
+            - name: DATABASE_URL
+              value: "$(POSTGRES_URL)?serverVersion=16&charset=utf8"
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: podium-app
+                  key: APP_SECRET
+            # serializer=0: mismo motivo que en php-deployment.yaml — evita
+            # que phpredis envuelva el envelope JSON en otra capa de
+            # serialize() nativo de PHP.
+            - name: MESSENGER_TRANSPORT_DSN
+              value: "redis://redis:6379?serializer=0"
+            # SourceChangedHandler -> Project::processSourceChanged ->
+            # GitHubPodiumManifestReader corre aquí (no en php-deployment,
+            # que solo sirve HTTP) — necesita el mismo token que ya usa
+            # appsource-poll-cronjob.yaml.
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-token
+                  key: token
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "500m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          # Sin probes HTTP — el worker no sirve tráfico, check basado en proceso.
+          livenessProbe:
+            exec:
+              command:
+                - "/bin/sh"
+                - "-c"
+                - "pgrep -f 'messenger:consume' > /dev/null"
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3

@@ -1,8 +1,10 @@
 # Despliegue de Hostium (Kustomize + ArgoCD)
 
-Primera versión: `php` (API Symfony), `web` (dashboard Next.js) y `keycloak` (auth), todo en el
-namespace `hostium`, sincronizado por ArgoCD directamente desde este repo — sin capa de GitOps
-separada, para que se pueda ver el despliegue completo en git.
+Primera versión: `php` (API Symfony), `worker` (consumer de Symfony Messenger — ejecuta los
+`EventHandler` de cada BC, sin él los eventos se quedan publicados en Redis sin que nadie los
+procese), `web` (dashboard Next.js) y `keycloak` (auth), todo en el namespace `hostium`,
+sincronizado por ArgoCD directamente desde este repo — sin capa de GitOps separada, para que se
+pueda ver el despliegue completo en git.
 
 ```
 deploy/
@@ -76,6 +78,8 @@ secret propios — ver el comentario en `deploy/base/database.yaml`.
 4. Copiar el token (solo se muestra una vez) y usarlo en el `kubectl create secret` de arriba.
 5. El `CronJob` lo referencia via `secretKeyRef: {name: github-token, key: token}` → variable de entorno
    `GITHUB_TOKEN`, usada tanto por `GitHubLatestCommitChecker` como por `GitHubPodiumManifestReader`.
+   `deploy/base/worker.yaml` reutiliza el mismo secret — `SourceChangedHandler` (que corre en el
+   worker, no en `php-deployment.yaml`) también llama a `GitHubPodiumManifestReader`.
 
 ## 2. Verificaciones previas en el clúster real
 
