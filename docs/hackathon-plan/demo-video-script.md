@@ -1,6 +1,6 @@
 # Hostium — 2-minute demo video script
 
-Target: **1:55–2:05** spoken. 295 words of voiceover — 1:58 at 150 wpm, 2:02 at 145.
+Target: **1:55–2:05** spoken. 306 words of voiceover — 2:02 at 150 wpm. Time a read-through before recording.
 Everything claimed here is shippable today — see "What we deliberately do NOT claim" at the end.
 
 ---
@@ -31,7 +31,7 @@ Everything claimed here is shippable today — see "What we deliberately do NOT 
 *Show the repo's `podium.yaml` with two top-level keys: `app` and `frontend`.*
 > Hostium reads the `podium.yaml` the team already keeps in their own repo. This one declares two
 > services — a NestJS backend and a Next.js frontend — so it discovers both and deploys each
-> on its own. Sponsor API keys go in once, referenced by name.
+> on its own, in the project's own namespace, each with its own public host.
 
 **(0:52) Build → deploy, live**
 
@@ -55,8 +55,9 @@ Everything claimed here is shippable today — see "What we deliberately do NOT 
 
 **On screen:** `./test.sh` output showing 11/11 pass; then the dashboard listing real projects, then `app.hostium.apperture.dev`.
 
-> This is open to strangers, so the isolation is real: a namespace per tenant, quotas, network
-> policies validated eleven out of eleven. And the proof isn't a slide — Hostium deploys Hostium.
+> This is open to strangers, so every project lands in its own namespace, and the tenant network
+> policies are validated eleven out of eleven against the live cluster. And the proof isn't a
+> slide — Hostium deploys Hostium.
 > This dashboard and its API ship through the same path every team gets.
 
 ## 1:50–2:00 — Close
@@ -98,5 +99,15 @@ Keeping this honest is what makes the rest credible to a judge who pokes at it:
   say "next" out loud over it.
 - **"Any language" is not true today.** The template catalog holds `nodejs/nestjs` and `nodejs/nextjs`.
   The script says "Node today, one more Dockerfile per language" — accurate, and still strong.
+- **The secrets screen is a frontend fixture.** `INITIAL_FIXTURE_SECRETS` lives in the browser bundle,
+  there is no secrets endpoint, and the values the tenant chart receives are only `hash`, `image`,
+  `ingress.host` and `port` — no env vars reach the pod yet. The script no longer mentions API keys.
+  Don't open that screen on camera.
+- **Quotas and NetworkPolicies are not applied by the deploy path.** The namespace is created
+  (`CreateNamespace=true`), but `helm/podium-app` renders only Deployment, Service and Ingress. The
+  five policies are validated as a fixture in `docs/hackathon-netpol/`. The script claims exactly
+  that — "validated against the live cluster" — and nothing more. If a judge asks whether every
+  tenant gets them automatically, the honest answer is "the namespace yes, the policies are the
+  next commit into the chart".
 - **~60 seconds is the warm path.** Say "about a minute" and show it, rather than putting a stopwatch
   on screen you might lose.
