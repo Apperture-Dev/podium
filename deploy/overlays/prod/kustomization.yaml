@@ -17,7 +17,7 @@ images:
   name: registry.gitlab.com/apperturedev/podium/php
   newName: registry.gitlab.com/apperturedev/podium/php
   newTag: 5c89f878
-- digest: sha256:56512e0358f4633febc6d7da016d9f893bf622be8f815f8601a1719f0bdbed6a
+- digest: sha256:32e07049519ea6d55db9118466e59ece0c1a1b2d9b14d574793dfb0dc5c05923
   name: registry.gitlab.com/apperturedev/podium/web
   newName: registry.gitlab.com/apperturedev/podium/web
-  newTag: 6cf1a65d
+  newTag: 541f2924
