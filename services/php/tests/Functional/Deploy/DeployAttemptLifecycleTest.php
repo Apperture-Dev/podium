@@ -29,6 +29,7 @@ final class DeployAttemptLifecycleTest extends KernelTestCase
     private HealthCheckExhaustedHandler $healthCheckExhaustedHandler;
     private DeployAttemptRepository $deployAttempts;
     private string $projectId;
+    private string $projectHash;
 
     protected function setUp(): void
     {
@@ -45,6 +46,7 @@ final class DeployAttemptLifecycleTest extends KernelTestCase
         $project = Project::register('https://github.com/team/repo', 'team-1', ProjectName::fromString('Test Project'));
         $projects->save($project);
         $this->projectId = $project->id()->toString();
+        $this->projectHash = $project->hash()->toString();
     }
 
     public function testDeploySucceedsAndPublishesDeployAttemptRequestedThenDeploySucceeded(): void
@@ -54,6 +56,8 @@ final class DeployAttemptLifecycleTest extends KernelTestCase
         $requested = $this->envelopesOn('deploy_attempt_requested');
         self::assertCount(1, $requested);
         self::assertInstanceOf(DeployAttemptRequested::class, $requested[0]->getMessage());
+        self::assertSame($this->projectHash, $requested[0]->getMessage()->hash);
+        self::assertSame('backend', $requested[0]->getMessage()->serviceName);
         $deployAttemptId = $requested[0]->getMessage()->deployAttemptId;
 
         ($this->healthCheckSucceededHandler)(new HealthCheckSucceeded($deployAttemptId));

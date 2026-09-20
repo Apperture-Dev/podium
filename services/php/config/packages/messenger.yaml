@@ -106,17 +106,22 @@ framework:
                 serializer: messenger.transport.symfony_serializer
                 options: { stream: 'podium.job-failed', group: 'build', consumer: 'build-1' }
 
-            # --- Deploy -> lanzador de ArgoCD (Go, diferido — sin consumidor real todavía) ---
+            # --- Deploy -> lanzador de ArgoCD (Go, services/deploy-launcher) ---
+            # serializer explícito: mismo motivo que build_job_requested/job_succeeded/job_failed
+            # más arriba — estos tres cruzan a un consumidor/productor en Go, necesitan JSON real.
             deploy_attempt_requested:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: messenger.transport.symfony_serializer
                 options: { stream: 'podium.deploy-attempt-requested', group: 'unassigned', consumer: 'unassigned-1' }
 
-            # --- Lanzador de ArgoCD -> Deploy (Go, diferido — sin productor real todavía) ---
+            # --- Lanzador de ArgoCD -> Deploy (Go, services/deploy-launcher) ---
             health_check_succeeded:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: messenger.transport.symfony_serializer
                 options: { stream: 'podium.health-check-succeeded', group: 'deploy', consumer: 'deploy-1' }
             health_check_exhausted:
                 dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                serializer: messenger.transport.symfony_serializer
                 options: { stream: 'podium.health-check-exhausted', group: 'deploy', consumer: 'deploy-1' }
 
             failed_events:

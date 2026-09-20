@@ -34,6 +34,7 @@ final readonly class ApplicationService
             $project->teamId(),
             $serviceName,
             $projectId,
+            $project->hash()->toString(),
             $version,
             $image,
             $deployEnvVars,

@@ -23,6 +23,7 @@ final class DeployAttemptTest extends UnitTestCase
             'team-1',
             'backend',
             'project-1',
+            'abc12345',
             'v1',
             'registry/backend:rev-1',
             ['API_URL' => 'https://x'],
@@ -33,7 +34,7 @@ final class DeployAttemptTest extends UnitTestCase
 
     public function testRequestStartsInPendingAndPublishesDeployAttemptRequested(): void
     {
-        $deployAttempt = DeployAttempt::request('team-1', 'backend', 'project-1', 'v1', 'registry/backend:rev-1', ['API_URL' => 'https://x'], []);
+        $deployAttempt = DeployAttempt::request('team-1', 'backend', 'project-1', 'abc12345', 'v1', 'registry/backend:rev-1', ['API_URL' => 'https://x'], []);
 
         $events = $deployAttempt->releaseEvents();
 
@@ -41,6 +42,8 @@ final class DeployAttemptTest extends UnitTestCase
         self::assertCount(1, $events);
         self::assertInstanceOf(DeployAttemptRequested::class, $events[0]);
         self::assertSame($deployAttempt->id()->toString(), $events[0]->deployAttemptId);
+        self::assertSame('abc12345', $events[0]->hash);
+        self::assertSame('backend', $events[0]->serviceName);
         self::assertSame('registry/backend:rev-1', $events[0]->image);
         self::assertSame(['API_URL' => 'https://x'], $events[0]->envVars);
     }

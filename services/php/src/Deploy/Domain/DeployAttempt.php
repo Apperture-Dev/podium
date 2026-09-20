@@ -45,6 +45,7 @@ final class DeployAttempt
         string $teamId,
         string $serviceName,
         string $projectId,
+        string $hash,
         string $version,
         string $image,
         array $deployEnvVars,
@@ -64,6 +65,8 @@ final class DeployAttempt
 
         $deployAttempt->record(new DeployAttemptRequested(
             $deployAttempt->id->toString(),
+            $hash,
+            $serviceName,
             $image,
             $deployEnvVars,
             $databaseDeclaration,

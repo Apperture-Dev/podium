@@ -12,6 +12,8 @@ final readonly class DeployAttemptRequested
      */
     public function __construct(
         public string $deployAttemptId,
+        public string $hash,
+        public string $serviceName,
         public string $image,
         public array $envVars,
         public array $databaseDeclaration,
