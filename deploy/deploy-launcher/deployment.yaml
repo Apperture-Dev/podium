@@ -39,16 +39,27 @@ spec:
               value: "0.1.1"
             - name: BASE_DOMAIN
               value: "apperture.dev"
-            # 3 reintentos es el invariante confirmado en
-            # docs/podium-domain/deploy/discovery.md (política de infra, no
-            # de dominio) — el default de 5s entre intentos (15s en total)
-            # resultó demasiado corto en el primer deploy real: el pod tardó
-            # 41s solo en llegar a Running (pull de imagen + arranque).
-            # 20s x 3 = 60s, alineado con el objetivo de
-            # docs/hackathon-plan/plan-hackbarna-2026.md ("live public URL
-            # en ~60s").
+            # waitForHealthy hace N intentos con (N-1) esperas entre medio —
+            # el ciclo real de deploy-launcher/internal/launcher.go revisa en
+            # t=0, t=intervalo, t=2*intervalo... y termina en el intento N
+            # sin esperar más, así que el margen real es (N-1)*intervalo, no
+            # N*intervalo. Con el default (3 intentos, 5s) eso son solo 10s
+            # de margen real — visto fallar dos veces en el primer deploy de
+            # verdad: el pod tardó 41s y luego 47s solo en llegar a Running
+            # (pull de imagen + arranque de Next.js), antes de que ArgoCD
+            # siquiera reflejara salud. 6 intentos x 20s = 100s de margen
+            # real, con holgura sobre esos tiempos observados y sobre el
+            # objetivo de "live public URL en ~60s" de
+            # docs/hackathon-plan/plan-hackbarna-2026.md. HEALTH_MAX_ATTEMPTS
+            # sube de su default (3, el invariante que documenta
+            # docs/podium-domain/deploy/discovery.md como "política de
+            # infra, no de dominio" — sigue siendo el mismo dato informativo
+            # en DeployFailed.retryCount, solo cambia cuántas veces se
+            # comprueba antes de darse por vencido).
             - name: HEALTH_POLL_INTERVAL
               value: "20s"
+            - name: HEALTH_MAX_ATTEMPTS
+              value: "6"
           resources:
             requests:
               memory: "64Mi"
