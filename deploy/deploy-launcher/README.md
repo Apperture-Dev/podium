@@ -26,11 +26,17 @@ lanzador, nunca del evento — mismo criterio que `IMAGE_REGISTRY` en `build-lau
 `CHART_REPO_URL`/`CHART_NAME` no cambian nunca (es el registro y el nombre del chart). `CHART_VERSION`
 **sí** cambia cuando se toca una plantilla de `helm/podium-app/` y se publica una versión nueva del
 chart — y hoy **no hay ningún mecanismo que lo sincronice solo**: quien suba
-`helm/podium-app/Chart.yaml` a una `version` nueva tiene que tocar también `CHART_VERSION` aquí, en
-el mismo commit. Decisión deliberada por ahora (coherente con el resto de config estática de esta
+`helm/podium-app/Chart.yaml` a una `version` nueva tiene que tocar también `CHART_VERSION` aquí,
+**después** de que el chart esté publicado en el registro: ArgoCD sincroniza este directorio desde
+git, así que apuntar a una versión que todavía no existe en OCI rompe los despliegues nuevos. Decisión deliberada por ahora (coherente con el resto de config estática de esta
 primera versión) — automatizarlo con un job `deploy-podium-app-chart` que haga el mismo patrón que
 `deploy-php`/`deploy-web` (bump + commit `[skip ci]` tras el `helm push`) es un follow-up, no algo
 que se haya construido todavía.
+
+Cambiar `CHART_VERSION` **sí** mueve a los tenants ya existentes: en cada deploy, el lanzador
+reescribe `spec.source.targetRevision` de su `Application` además del `valuesObject`. Sin eso, un
+tenant renderizaría para siempre la versión del chart con la que nació, en silencio — nada falla,
+simplemente despliega la plantilla antigua.
 
 ## Puerto del contenedor — convención sobre configuración, no config del lanzador
 

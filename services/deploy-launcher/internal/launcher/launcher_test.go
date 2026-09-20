@@ -294,3 +294,47 @@ func TestHandleReturnsHealthCheckExhaustedWhenTheApplicationIsDeletedMidPoll(t *
 		t.Fatalf("got deployAttemptId %q", failed.DeployAttemptID)
 	}
 }
+
+// Un tenant creado con una versión anterior del chart tiene que adoptar la
+// nueva en su siguiente deploy. El chart es genérico y evoluciona (soporte de
+// base de datos, por ejemplo); si el update sólo tocara los values, los
+// tenants ya existentes se quedarían renderizando la versión con la que
+// nacieron, para siempre y sin que nada fallara.
+func TestHandleMovesAnExistingApplicationToTheConfiguredChartVersion(t *testing.T) {
+	scheme := runtime.NewScheme()
+	existing := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "argoproj.io/v1alpha1",
+		"kind":       "Application",
+		"metadata": map[string]any{
+			"name":      "tenant-backend-abc12345",
+			"namespace": "argocd",
+		},
+		"spec": map[string]any{
+			"source": map[string]any{
+				"repoURL":        "registry.apperture.dev/charts",
+				"chart":          "podium-app",
+				"targetRevision": "0.1.2",
+				"helm": map[string]any{
+					"valuesObject": map[string]any{"hash": "old-hash"},
+				},
+			},
+		},
+		"status": map[string]any{"health": map[string]any{"status": "Healthy"}},
+	}}
+	client := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, map[schema.GroupVersionResource]string{
+		launcher.ApplicationGVR: "ApplicationList",
+	}, existing)
+
+	if _, _, err := launcher.New(client, testConfig(), time.Millisecond, 5).Handle(context.Background(), testRequest()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got, err := client.Resource(launcher.ApplicationGVR).Namespace("argocd").Get(context.Background(), "tenant-backend-abc12345", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error reading back application: %v", err)
+	}
+	revision, _, _ := unstructured.NestedString(got.Object, "spec", "source", "targetRevision")
+	if revision != testConfig().ChartVersion {
+		t.Fatalf("got targetRevision %q, want %q", revision, testConfig().ChartVersion)
+	}
+}

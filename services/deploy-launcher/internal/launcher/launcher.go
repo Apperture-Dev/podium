@@ -56,11 +56,19 @@ func (l *Launcher) Handle(ctx context.Context, req events.DeployAttemptRequested
 	case err != nil:
 		return nil, nil, fmt.Errorf("get application %s: %w", name, err)
 	default:
-		// Only the values object is touched — never replace the whole
-		// object, so anything else ArgoCD or a human set on it survives.
+		// Only the two fields this launcher owns are touched — never the
+		// whole object, so anything else ArgoCD or a human set on it
+		// survives.
 		values := argospec.ValuesObject(req, l.cfg)
 		if err := unstructured.SetNestedMap(existing.Object, values, "spec", "source", "helm", "valuesObject"); err != nil {
 			return nil, nil, fmt.Errorf("set valuesObject on %s: %w", name, err)
+		}
+		// The chart is generic and keeps evolving (database support, for
+		// one). Without this, a tenant would render forever the chart
+		// version it was born with, silently: nothing fails, it just
+		// deploys the old template.
+		if err := unstructured.SetNestedField(existing.Object, l.cfg.ChartVersion, "spec", "source", "targetRevision"); err != nil {
+			return nil, nil, fmt.Errorf("set targetRevision on %s: %w", name, err)
 		}
 		if _, err := apps.Update(ctx, existing, metav1.UpdateOptions{}); err != nil {
 			return nil, nil, fmt.Errorf("update application %s: %w", name, err)
