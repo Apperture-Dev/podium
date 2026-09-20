@@ -26,6 +26,14 @@ final class GitHubRepositoryUrlTest extends TestCase
         self::assertSame('app', $parsed->repo);
     }
 
+    public function testStripsATrailingDotGitSuffix(): void
+    {
+        $parsed = GitHubRepositoryUrl::parse('https://github.com/team-a/app.git');
+
+        self::assertSame('team-a', $parsed->owner);
+        self::assertSame('app', $parsed->repo);
+    }
+
     public function testThrowsForAnUrlThatIsNotOwnerSlashRepo(): void
     {
         $this->expectException(RuntimeException::class);

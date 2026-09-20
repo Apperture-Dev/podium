@@ -27,6 +27,12 @@ final readonly class GitHubRepositoryUrl
             throw new RuntimeException(\sprintf('Cannot parse owner/repo from repository URL "%s".', $repositoryUrl));
         }
 
-        return new self($parts[0], $parts[1]);
+        // GitHub ofrece la URL de clone con sufijo ".git" — la API REST no lo
+        // acepta como parte del nombre del repo, así que se recorta aquí, en
+        // el único punto que parsea owner/repo (mismo motivo por el que este
+        // parser es compartido entre AppSource y Project).
+        $repo = preg_replace('/\.git$/', '', $parts[1]);
+
+        return new self($parts[0], $repo);
     }
 }
