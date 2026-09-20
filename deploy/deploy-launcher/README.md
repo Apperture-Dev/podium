@@ -18,6 +18,19 @@ usa el campo `namespace:` global de `kustomization.yaml` (reescribiría también
 RBAC). Cada manifiesto fija su `metadata.namespace` explícito — ver el comentario en
 `serviceaccount.yaml` y `argocd-rbac.yaml`.
 
+## `CHART_VERSION` — sincronización manual con `helm/podium-app/Chart.yaml`
+
+`CHART_REPO_URL`/`CHART_NAME`/`CHART_VERSION` (en `deployment.yaml`) son config propia del
+lanzador, nunca del evento — mismo criterio que `IMAGE_REGISTRY` en `build-launcher`.
+`CHART_REPO_URL`/`CHART_NAME` no cambian nunca (es el registro y el nombre del chart). `CHART_VERSION`
+**sí** cambia cuando se toca una plantilla de `helm/podium-app/` y se publica una versión nueva del
+chart — y hoy **no hay ningún mecanismo que lo sincronice solo**: quien suba
+`helm/podium-app/Chart.yaml` a una `version` nueva tiene que tocar también `CHART_VERSION` aquí, en
+el mismo commit. Decisión deliberada por ahora (coherente con el resto de config estática de esta
+primera versión) — automatizarlo con un job `deploy-podium-app-chart` que haga el mismo patrón que
+`deploy-php`/`deploy-web` (bump + commit `[skip ci]` tras el `helm push`) es un follow-up, no algo
+que se haya construido todavía.
+
 ## Dependencia de la Fase A (chart + registro OCI)
 
 **Este lanzador no sirve de nada por sí solo** hasta que:
