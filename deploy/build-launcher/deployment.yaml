@@ -13,14 +13,23 @@ spec:
         app: build-launcher
     spec:
       serviceAccountName: build-launcher
+      # El registro de GitLab es privado — a diferencia de zot-pull-secret,
+      # "gitlab-token-auth" no se refleja automáticamente en namespaces
+      # nuevos (ver deploy/README.md, "Pull de imágenes... solo se copia").
+      imagePullSecrets:
+        - name: gitlab-token-auth
       containers:
         - name: build-launcher
           image: REGISTRY_PLACEHOLDER/build-launcher:latest
           env:
             # Redis vive en el namespace "hostium" (mismo que consume php) —
-            # nombre corto de Service no basta desde otro namespace.
+            # nombre corto de Service no basta desde otro namespace. El
+            # Service se llama "redis" (CR kind "Redis" standalone, no
+            # "RedisReplication" — no lleva sufijo "-master", confirmado
+            # contra el clúster real tras un fallo de DNS en el primer
+            # despliegue).
             - name: REDIS_ADDR
-              value: "redis-master.hostium.svc.cluster.local:6379"
+              value: "redis.hostium.svc.cluster.local:6379"
             - name: BUILD_NAMESPACE
               valueFrom:
                 fieldRef:

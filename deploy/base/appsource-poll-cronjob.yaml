@@ -44,7 +44,7 @@ spec:
                       name: podium-app
                       key: APP_SECRET
                 - name: MESSENGER_TRANSPORT_DSN
-                  value: "redis://redis-master:6379?serializer=0"
+                  value: "redis://redis:6379?serializer=0"
                 - name: GITHUB_TOKEN
                   valueFrom:
                     secretKeyRef:

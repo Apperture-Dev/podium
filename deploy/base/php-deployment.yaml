@@ -55,7 +55,7 @@ spec:
             # necesaria para que services/build-launcher (Go) pueda leer JSON
             # limpio de podium.build-job-requested/job-succeeded/job-failed.
             - name: MESSENGER_TRANSPORT_DSN
-              value: "redis://redis-master:6379?serializer=0"
+              value: "redis://redis:6379?serializer=0"
             - name: KEYCLOAK_JWKS_URL
               value: "http://keycloak:8080/realms/podium/protocol/openid-connect/certs"
           resources:

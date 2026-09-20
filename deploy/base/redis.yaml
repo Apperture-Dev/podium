@@ -1,7 +1,12 @@
-# CR Redis del operador OpsTree, llamado "redis" a propósito para que el
-# Service autogenerado sea "redis-master" (mismo truco de naming que
-# craft-market-gitops/base/redis.yaml). El operador ya está instalado como
-# infraestructura de plataforma; este proyecto solo declara su propia instancia.
+# CR Redis del operador OpsTree — kind "Redis" (standalone), no
+# "RedisReplication". El operador ya está instalado como infraestructura de
+# plataforma; este proyecto solo declara su propia instancia.
+#
+# Naming real, confirmado contra el clúster (kubectl -n hostium get svc):
+# el Service generado se llama literalmente "redis" — el sufijo "-master"
+# que sí usa craft-market-gitops/base/redis.yaml es propio del kind
+# "RedisReplication" (roles maestro/réplica), no de este "Redis" standalone.
+# No asumir el mismo naming solo porque el operador es el mismo.
 apiVersion: redis.redis.opstreelabs.in/v1beta2
 kind: Redis
 metadata:
