@@ -136,6 +136,15 @@ func TestBuildMountsTheRegistrySecretForPush(t *testing.T) {
 	}
 }
 
+func TestBuildPullsTheJobImageWithTheGitLabRegistrySecret(t *testing.T) {
+	job := jobspec.Build(testRequest(), testConfig())
+
+	secrets := job.Spec.Template.Spec.ImagePullSecrets
+	if len(secrets) != 1 || secrets[0].Name != "gitlab-token-auth" {
+		t.Fatalf("expected exactly one imagePullSecret named gitlab-token-auth, got %v", secrets)
+	}
+}
+
 func TestBuildSetsTTLAndNeverRestarts(t *testing.T) {
 	job := jobspec.Build(testRequest(), testConfig())
 

@@ -232,6 +232,29 @@ build-build-launcher:
       changes:
         - services/build-launcher/**/*
 
+build-build-runner:
+  extends: .buildah-base
+  stage: build
+  # Sin test job: services/build-runner es un entrypoint de shell + plantillas
+  # Dockerfile, sin suite propia todavía (mismo criterio que build-web).
+  script:
+    - |
+      buildah bud --isolation=chroot --layers \
+        --cache-from "$CI_REGISTRY_IMAGE/build-runner" \
+        -t "$CI_REGISTRY_IMAGE/build-runner:$CI_COMMIT_SHORT_SHA" \
+        -t "$CI_REGISTRY_IMAGE/build-runner:latest" \
+        -f services/build-runner/Dockerfile services/build-runner
+    - buildah push "$CI_REGISTRY_IMAGE/build-runner:latest"
+    - buildah push --digestfile /tmp/image-digest.txt "$CI_REGISTRY_IMAGE/build-runner:$CI_COMMIT_SHORT_SHA"
+    - echo "IMAGE_DIGEST=$(cat /tmp/image-digest.txt)" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      changes:
+        - services/build-runner/**/*
+
 package-podium-app-chart:
   stage: build
   # alpine/helm fija ENTRYPOINT ["helm"] — mismo problema que ya vimos con

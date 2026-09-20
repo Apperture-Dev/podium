@@ -30,10 +30,15 @@ final class SeedTemplatesCommand extends Command
         // internamente templates/{lang}-{framework}.Dockerfile según lo
         // que declare podium.yaml. Convención: "npm ci && npm run build
         // && npm start" (ver docs/examples/podium-example.yaml).
+        //
+        // Registro de GitLab, no GHCR: es donde .gitlab-ci.yml publica de
+        // verdad la imagen (build-build-runner) — el valor con ghcr.io que
+        // hubo aquí antes nunca se publicó a ningún sitio (404 real contra
+        // el clúster, confirmado con el primer build de un repo real).
         $nestjsId = $this->applicationService->defineTemplate(
             'nodejs',
             'nestjs',
-            'ghcr.io/apperture-dev/podium-build-runner:latest',
+            'registry.gitlab.com/apperturedev/podium/build-runner:latest',
             3000,
             [],
         );
@@ -43,7 +48,7 @@ final class SeedTemplatesCommand extends Command
         $nextjsId = $this->applicationService->defineTemplate(
             'nodejs',
             'nextjs',
-            'ghcr.io/apperture-dev/podium-build-runner:latest',
+            'registry.gitlab.com/apperturedev/podium/build-runner:latest',
             3000,
             [],
         );
