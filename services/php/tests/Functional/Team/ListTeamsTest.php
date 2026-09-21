@@ -11,7 +11,7 @@ final class ListTeamsTest extends FunctionalTestCase
 {
     public function testListsOnlyTeamsWhereTheAuthenticatedUserIsAMember(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
         $teamId = $this->jsonResponse()['id'];
 

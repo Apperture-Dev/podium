@@ -111,6 +111,17 @@ test.
 
 ## Migration Plan
 
+> **Revisado al implementar (decisión explícita del dueño):** los dos merges se colapsaron en
+> **un solo commit**. El plan de abajo se conserva porque su análisis sigue siendo válido y
+> porque es el que hay que seguir si esto se vuelve a desplegar por partes. La consecuencia
+> aceptada: API y dashboard cambian a la vez y el orden entre sus jobs de CI no está
+> garantizado, así que puede haber una ventana corta en la que el dashboard desplegado no
+> case con la API desplegada. Mitigación que sí queda en pie: el dashboard manda el token y
+> **ya no envía `creatorUserId`**, y la API lo ignoraría de todos modos — verificado en
+> `RegisterTeamTest::testACreatorIdentitySuppliedInTheBodyIsNotHonored` —, así que el
+> desajuste solo puede darse en un sentido (dashboard viejo contra API nueva), que es
+> precisamente el que devuelve 401 y no un dato corrupto.
+
 Two merges, because the two services cannot deploy atomically:
 
 1. **Dashboard first.** Both BFF write routes send `Authorization: Bearer`; the teams route keeps

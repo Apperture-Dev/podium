@@ -52,19 +52,19 @@ final class LoadFixturesCommand extends Command
         $squadTeamId = $this->teams->registerTeam('Podium Squad', $userId);
         $output->writeln(\sprintf('Team "Podium Squad": %s', $squadTeamId));
 
-        $marketplaceId = $this->projects->registerProject('https://github.com/podium-hackathon/marketplace-api', $squadTeamId, 'Marketplace API');
+        $marketplaceId = $this->projects->registerProject('https://github.com/podium-hackathon/marketplace-api', $squadTeamId, 'Marketplace API', $userId);
         $output->writeln(\sprintf('  Project "Marketplace API": %s', $marketplaceId));
         $this->deployedApplication($marketplaceId, 'backend');
         $this->buildFailedApplication($marketplaceId, 'worker');
 
-        $landingId = $this->projects->registerProject('https://github.com/podium-hackathon/landing-page', $squadTeamId, 'Landing Page');
+        $landingId = $this->projects->registerProject('https://github.com/podium-hackathon/landing-page', $squadTeamId, 'Landing Page', $userId);
         $output->writeln(\sprintf('  Project "Landing Page": %s', $landingId));
         $this->buildingApplication($landingId, 'frontend');
 
         $judgesTeamId = $this->teams->registerTeam('Judges Demo Team', $userId);
         $output->writeln(\sprintf('Team "Judges Demo Team": %s', $judgesTeamId));
 
-        $analyticsId = $this->projects->registerProject('https://github.com/podium-hackathon/analytics-service', $judgesTeamId, 'Analytics Service');
+        $analyticsId = $this->projects->registerProject('https://github.com/podium-hackathon/analytics-service', $judgesTeamId, 'Analytics Service', $userId);
         $output->writeln(\sprintf('  Project "Analytics Service": %s', $analyticsId));
         $this->deployFailedApplication($analyticsId, 'api');
 

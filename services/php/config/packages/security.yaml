@@ -18,13 +18,14 @@ security:
             access_token:
                 token_handler: App\Shared\Infrastructure\Security\KeycloakAccessTokenHandler
 
-    # Solo la primera regla que matchea se aplica — /api/doc* y los
-    # endpoints de escritura ya existentes quedan públicos por ahora;
-    # el resto de /api exige un Bearer JWT válido.
+    # Solo la primera regla que matchea se aplica — /api/doc* es lo único
+    # público; todo el resto de /api exige un Bearer JWT válido, escrituras
+    # incluidas. Los POST de /api/teams y /api/projects estuvieron exentos, y
+    # además el primero tomaba el creatorUserId del cuerpo de la petición: eso
+    # permitía crear un equipo a nombre de cualquiera y dejaba decorativa la
+    # comprobación de membresía de todas las lecturas.
     access_control:
         - { path: ^/api/doc, roles: PUBLIC_ACCESS }
-        - { path: ^/api/teams$, methods: [POST], roles: PUBLIC_ACCESS }
-        - { path: ^/api/projects$, methods: [POST], roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
 
 when@test:

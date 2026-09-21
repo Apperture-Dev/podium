@@ -70,8 +70,12 @@ and `tests/Functional/Project/RegisterProjectTest.php`, all of which currently P
 token and, for teams, with a `creatorUserId` in the payload.
 
 **Consumers** — any caller outside this repo that posts `creatorUserId` breaks. The only known
-caller is the dashboard BFF, updated here. The seeded dev fixtures
-(`app:fixtures:load`) call the application service directly, not HTTP, and are unaffected.
+caller is the dashboard BFF, updated here. ~~The seeded dev fixtures (`app:fixtures:load`) call
+the application service directly, not HTTP, and are unaffected.~~ **Corregido durante la
+implementación**: sí les afecta. Van por PHP, no por HTTP, pero `registerProject()` cambia de
+firma, así que sus tres llamadas en `Shared/Infrastructure/Console/LoadFixturesCommand.php`
+pasan el `userId` sembrado como usuario solicitante — que además es el creador de esos teams,
+así que la comprobación de membresía la pasa por derecho.
 
 **Docs** — the root `README.md` lists the available routes and should note that both writes now
 require a Bearer token.

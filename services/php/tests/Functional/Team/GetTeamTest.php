@@ -11,7 +11,7 @@ final class GetTeamTest extends FunctionalTestCase
 {
     public function testGetsATeamTheUserIsAMemberOf(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
         $this->getJson('/api/teams/'.$teamId, bearerToken: 'user-1');
@@ -22,7 +22,7 @@ final class GetTeamTest extends FunctionalTestCase
 
     public function testRejectsAUserWhoIsNotAMember(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
         $this->getJson('/api/teams/'.$teamId, bearerToken: 'user-2');

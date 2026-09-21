@@ -12,10 +12,10 @@ final class GetApplicationTest extends FunctionalTestCase
 {
     public function testGetsAnApplicationByServiceName(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
-        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend']);
+        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend'], 'user-1');
         $projectId = $this->jsonResponse()['id'];
 
         $appManager = static::getContainer()->get(AppManagerApplicationService::class);
@@ -33,10 +33,10 @@ final class GetApplicationTest extends FunctionalTestCase
 
     public function testRejectsAUserWhoIsNotAMemberOfTheOwningTeam(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
-        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend']);
+        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend'], 'user-1');
         $projectId = $this->jsonResponse()['id'];
 
         $appManager = static::getContainer()->get(AppManagerApplicationService::class);
@@ -49,10 +49,10 @@ final class GetApplicationTest extends FunctionalTestCase
 
     public function testReturns404ForAnUnknownServiceName(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
-        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend']);
+        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend'], 'user-1');
         $projectId = $this->jsonResponse()['id'];
 
         $this->getJson('/api/teams/'.$teamId.'/projects/'.$projectId.'/applications/unknown-service', bearerToken: 'user-1');

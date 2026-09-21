@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { SYMFONY_API_BASE_URL } from "@/lib/auth/config";
-import { getAccessToken, decodeJwtClaims } from "@/lib/auth/session";
+import { getAccessToken } from "@/lib/auth/session";
 import { proxyGet } from "@/lib/auth/proxy";
 
 /** Same-origin proxy to `GET /api/teams` — see lib/auth/proxy.ts. */
@@ -9,19 +9,17 @@ export async function GET() {
 }
 
 /**
- * Same-origin proxy to `POST /api/teams` on the Symfony backend. `creatorUserId`
- * is taken from the session cookie's `sub` claim here, not from whatever the
- * client sent, since this is the one place that actually knows who's logged in.
+ * Same-origin proxy to `POST /api/teams` on the Symfony backend.
+ *
+ * The session JWT is forwarded and the API derives the team's creator from it,
+ * so this handler no longer asserts who the caller is — it just proxies. The
+ * 401 below is a shortcut for a request with no session at all; the API rejects
+ * an invalid token on its own.
  */
 export async function POST(request: Request) {
   const token = await getAccessToken();
   if (!token) {
     return NextResponse.json({ error: "No autenticado." }, { status: 401 });
-  }
-
-  const claims = decodeJwtClaims(token);
-  if (!claims?.sub) {
-    return NextResponse.json({ error: "Token inválido." }, { status: 401 });
   }
 
   let body: { name?: string };
@@ -38,8 +36,11 @@ export async function POST(request: Request) {
   try {
     response = await fetch(`${SYMFONY_API_BASE_URL}/api/teams`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: body.name, creatorUserId: claims.sub }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name: body.name }),
       cache: "no-store",
     });
   } catch {

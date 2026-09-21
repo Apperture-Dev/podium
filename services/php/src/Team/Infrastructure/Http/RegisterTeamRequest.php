@@ -12,8 +12,6 @@ final readonly class RegisterTeamRequest
         #[Assert\NotBlank]
         #[Assert\Length(max: 150)]
         public string $name,
-        #[Assert\NotBlank]
-        public string $creatorUserId,
     ) {
     }
 }

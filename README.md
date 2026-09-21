@@ -81,7 +81,7 @@ docker compose exec frankenphp bin/console app:build:seed-templates
 
 ### 5. Conseguir un JWT real de Keycloak
 
-La API exige un Bearer JWT en casi todos los endpoints (`GET /api/teams`, etc.) — verificado contra el realm `podium` (cliente `podium-api`, usuario de prueba `testuser`/`testuser`, ya cargado al importar el realm):
+La API exige un Bearer JWT en **todos** los endpoints de `/api` salvo la documentación (`/api/doc`) — lecturas y escrituras incluidas — verificado contra el realm `podium` (cliente `podium-api`, usuario de prueba `testuser`/`testuser`, ya cargado al importar el realm):
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:8091/realms/podium/protocol/openid-connect/token \
@@ -112,7 +112,16 @@ curl -s http://localhost:8090/api/teams -H "Authorization: Bearer $TOKEN"
 
 - API: http://localhost:8090
 - Swagger UI: http://localhost:8090/api/doc
-- Rutas disponibles hoy: `GET/POST /api/teams`, `GET/POST /api/projects`, `GET /api/teams/{teamId}/projects/{projectId}/applications[/{serviceName}]`
+- Rutas disponibles hoy — todas exigen `Authorization: Bearer <JWT>`:
+
+  | Método y ruta | Notas |
+  |---|---|
+  | `GET /api/teams` | Los equipos de los que el usuario del token es miembro |
+  | `POST /api/teams` | Body: **solo `{ name }`**. El creador y primer miembro es el usuario del token, nunca un id enviado en el cuerpo |
+  | `GET /api/teams/{teamId}` | 403 si no eres miembro |
+  | `POST /api/projects` | Body: `{ name, repositoryUrl, teamId }`. 403 si no eres miembro de ese equipo, 404 si no existe |
+  | `GET /api/teams/{teamId}/projects[/{projectId}]` | |
+  | `GET /api/teams/{teamId}/projects/{projectId}/applications[/{serviceName}]` | |
 
 ### 8. Tests
 

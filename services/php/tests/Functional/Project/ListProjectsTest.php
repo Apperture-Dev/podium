@@ -11,10 +11,10 @@ final class ListProjectsTest extends FunctionalTestCase
 {
     public function testListsProjectsForATeamTheUserBelongsTo(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
-        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend']);
+        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend'], 'user-1');
         self::assertResponseStatusCodeSame(Response::HTTP_CREATED);
 
         $this->getJson('/api/teams/'.$teamId.'/projects', bearerToken: 'user-1');
@@ -28,7 +28,7 @@ final class ListProjectsTest extends FunctionalTestCase
 
     public function testRejectsAUserWhoIsNotAMemberOfTheTeam(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
         $this->getJson('/api/teams/'.$teamId.'/projects', bearerToken: 'user-2');

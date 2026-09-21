@@ -30,12 +30,13 @@ final readonly class ApplicationService
 
     /**
      * El equipo da a Podium una repositoryUrl por primera vez. Valida que el
-     * teamId exista — referencia entre BCs solo por id, la existencia la
-     * comprueba el orquestador, nunca el dominio.
+     * teamId exista y que quien registra sea miembro de ese Team — referencia
+     * entre BCs solo por id, la existencia y el acceso los comprueba el
+     * orquestador, nunca el dominio.
      */
-    public function registerProject(string $repositoryUrl, string $teamId, string $name): string
+    public function registerProject(string $repositoryUrl, string $teamId, string $name, string $requestingUserId): string
     {
-        $this->teams->get(TeamId::fromString($teamId));
+        $this->requireMember($teamId, $requestingUserId);
 
         $project = Project::register($repositoryUrl, $teamId, ProjectName::fromString($name));
         $events = $project->releaseEvents();

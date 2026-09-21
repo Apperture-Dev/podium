@@ -11,10 +11,10 @@ final class GetProjectTest extends FunctionalTestCase
 {
     public function testGetsAProjectOfATeamTheUserBelongsTo(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
-        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend']);
+        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend'], 'user-1');
         $projectId = $this->jsonResponse()['id'];
 
         $this->getJson('/api/teams/'.$teamId.'/projects/'.$projectId, bearerToken: 'user-1');
@@ -29,10 +29,10 @@ final class GetProjectTest extends FunctionalTestCase
 
     public function testRejectsAUserWhoIsNotAMemberOfTheTeam(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
-        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend']);
+        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamId, 'name' => 'Podium Backend'], 'user-1');
         $projectId = $this->jsonResponse()['id'];
 
         $this->getJson('/api/teams/'.$teamId.'/projects/'.$projectId, bearerToken: 'user-2');
@@ -42,13 +42,13 @@ final class GetProjectTest extends FunctionalTestCase
 
     public function testReturns404WhenTheProjectDoesNotBelongToThatTeam(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Team A', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Team A'], 'user-1');
         $teamAId = $this->jsonResponse()['id'];
 
-        $this->postJson('/api/teams', ['name' => 'Team B', 'creatorUserId' => 'user-2']);
+        $this->postJson('/api/teams', ['name' => 'Team B'], 'user-2');
         $teamBId = $this->jsonResponse()['id'];
 
-        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamAId, 'name' => 'Podium Backend']);
+        $this->postJson('/api/projects', ['repositoryUrl' => 'https://github.com/team/repo', 'teamId' => $teamAId, 'name' => 'Podium Backend'], 'user-1');
         $projectId = $this->jsonResponse()['id'];
 
         $this->getJson('/api/teams/'.$teamBId.'/projects/'.$projectId, bearerToken: 'user-2');
@@ -58,7 +58,7 @@ final class GetProjectTest extends FunctionalTestCase
 
     public function testReturns404ForAnUnknownProjectId(): void
     {
-        $this->postJson('/api/teams', ['name' => 'Podium Team', 'creatorUserId' => 'user-1']);
+        $this->postJson('/api/teams', ['name' => 'Podium Team'], 'user-1');
         $teamId = $this->jsonResponse()['id'];
 
         $this->getJson('/api/teams/'.$teamId.'/projects/01997e3a-0000-7000-8000-000000000000', bearerToken: 'user-1');
